@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tierramor Ops</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital@1&display=swap" rel="stylesheet">
+<style>
+:root{--cream:#E8E2D1;--blue:#717F7E;--green:#76724E;--clay:#995C44;--plum:#735145;--brown:#544236;--tm:#a08070;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Cormorant',Georgia,serif;background:var(--cream);color:var(--brown);min-height:100vh;}
+.screen{display:none;min-height:100vh;flex-direction:column;}
+.screen.active{display:flex;}
+#ls{background:var(--brown);align-items:center;justify-content:center;padding:2rem;}
+.lt{color:var(--cream);font-size:1.5rem;letter-spacing:.1em;text-align:center;margin-bottom:.25rem;font-style:italic;}
+.ls2{color:var(--tm);font-size:.75rem;letter-spacing:.15em;text-align:center;margin-bottom:2rem;font-family:sans-serif;text-transform:uppercase;}
+.lc{background:rgba(255,255,255,.06);border:1px solid rgba(232,226,209,.15);border-radius:14px;padding:1.8rem;width:100%;max-width:320px;}
+.lc label{display:block;color:var(--tm);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;font-family:sans-serif;margin-bottom:.4rem;}
+.lc input{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(232,226,209,.2);border-radius:8px;padding:.75rem 1rem;color:var(--cream);font-size:.95rem;font-family:sans-serif;margin-bottom:1.2rem;outline:none;}
+.lc input::placeholder{color:rgba(232,226,209,.3);}
+.btn-login{width:100%;background:var(--clay);border:none;border-radius:8px;padding:.85rem;color:var(--cream);font-size:.95rem;font-family:sans-serif;cursor:pointer;}
+.lerr{color:#e88;font-size:.75rem;font-family:sans-serif;text-align:center;margin-top:.75rem;min-height:1.2em;}
+.hdr{background:var(--brown);padding:.9rem 1.1rem;display:flex;align-items:center;gap:.7rem;position:sticky;top:0;z-index:100;}
+.hdr-t{color:var(--cream);font-size:1rem;letter-spacing:.07em;flex:1;font-style:italic;}
+.btn-bk{background:none;border:none;color:var(--cream);cursor:pointer;font-size:1.3rem;padding:0 .2rem;}
+.btn-out{background:none;border:1px solid rgba(232,226,209,.25);border-radius:6px;color:var(--tm);font-size:.68rem;font-family:sans-serif;padding:.28rem .55rem;cursor:pointer;}
+.hero{background:var(--brown);text-align:center;padding:2rem 1.5rem 2.5rem;}
+.hero-t{color:var(--cream);font-size:1.6rem;letter-spacing:.1em;font-style:italic;}
+.hero-s{color:var(--tm);font-size:.72rem;letter-spacing:.15em;text-transform:uppercase;font-family:sans-serif;margin-top:.3rem;}
+.dept-sec{padding:1.4rem 1.1rem;}
+.sec-lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--tm);font-family:sans-serif;margin-bottom:.9rem;}
+.dept-btn{width:100%;background:white;border:1px solid rgba(84,66,54,.12);border-radius:12px;padding:1rem 1.1rem;display:flex;align-items:center;gap:.9rem;margin-bottom:.8rem;cursor:pointer;text-align:left;transition:all .18s;}
+.dept-btn:active{transform:scale(.98);}
+.dept-btn.off{opacity:.5;cursor:not-allowed;}
+.dico{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:600;font-family:sans-serif;flex-shrink:0;}
+.dico.a{background:rgba(113,127,126,.15);color:var(--blue);}
+.dico.b{background:rgba(118,114,78,.15);color:var(--green);}
+.dico.c{background:rgba(153,92,68,.12);color:var(--clay);}
+.dico.d{background:rgba(115,81,69,.15);color:var(--plum);}
+.dinf h3{font-size:1rem;color:var(--brown);font-weight:normal;font-style:italic;}
+.dinf p{font-size:.72rem;color:var(--tm);font-family:sans-serif;margin-top:.12rem;}
+.dbadge{margin-left:auto;font-size:.62rem;font-family:sans-serif;padding:.18rem .48rem;border-radius:20px;white-space:nowrap;}
+.dbadge.on{background:rgba(153,92,68,.12);color:var(--clay);}
+.dbadge.off{background:rgba(136,136,136,.1);color:var(--tm);}
+.dbadge.adm{background:rgba(115,81,69,.15);color:var(--plum);}
+.sbar{padding:.9rem 1.1rem;background:var(--cream);position:sticky;top:57px;z-index:90;}
+.swrap{position:relative;}
+.swrap input{width:100%;background:white;border:1px solid rgba(84,66,54,.15);border-radius:10px;padding:.65rem 1rem .65rem 2.3rem;font-size:.9rem;font-family:sans-serif;color:var(--brown);outline:none;}
+.swrap input::placeholder{color:var(--tm);}
+.sico{position:absolute;left:.75rem;top:50%;transform:translateY(-50%);font-size:.85rem;}
+.gsec{padding:.4rem 1.1rem 2rem;}
+.glbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--tm);font-family:sans-serif;margin-bottom:.8rem;margin-top:.4rem;}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.7rem;}
+.gcard{background:white;border:1px solid rgba(84,66,54,.1);border-radius:12px;padding:1rem .85rem;cursor:pointer;transition:all .18s;display:flex;flex-direction:column;gap:.45rem;}
+.gcard:active{transform:scale(.97);}
+.gcard .ct{font-size:.9rem;color:var(--brown);font-family:sans-serif;font-weight:500;line-height:1.3;font-style:italic;}
+.gcard .cd{font-size:.68rem;color:var(--tm);font-family:sans-serif;line-height:1.35;}
+.divider{height:1px;background:rgba(84,66,54,.1);margin:.4rem 0 1.1rem;}
+.rbtn{width:100%;background:white;border:1px solid rgba(153,92,68,.25);border-radius:10px;padding:.85rem .95rem;display:flex;align-items:center;gap:.7rem;margin-bottom:.65rem;cursor:pointer;text-align:left;transition:all .18s;}
+.rbtn:active{background:#faf8f4;}
+.rdot{width:7px;height:7px;border-radius:50%;background:var(--clay);flex-shrink:0;}
+.rbtn span{font-size:.85rem;font-family:sans-serif;color:var(--brown);flex:1;}
+.rbtn .arr{color:var(--tm);font-size:.75rem;}
+.rbtn.averia .rdot{background:#c0392b;}
+.rbtn.materiales .rdot{background:var(--green);}
+#fs{background:var(--cream);}
+.fbody{padding:1.1rem;flex:1;}
+.fg{margin-bottom:1.1rem;}
+.fg label{display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--tm);font-family:sans-serif;margin-bottom:.38rem;}
+.fg input,.fg select,.fg textarea{width:100%;background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;padding:.7rem .85rem;font-size:.9rem;font-family:sans-serif;color:var(--brown);outline:none;}
+.fg textarea{resize:none;height:75px;line-height:1.5;}
+.fg select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .85rem center;padding-right:1.8rem;}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;}
+.btn-sub{width:100%;background:var(--clay);border:none;border-radius:10px;padding:.95rem;color:var(--cream);font-size:.92rem;font-family:sans-serif;cursor:pointer;margin-top:.4rem;}
+.btn-sub:disabled{opacity:.5;}
+.btn-sub.green{background:var(--green);}
+.btn-sub.red{background:#c0392b;}
+.fnote{font-size:.7rem;font-family:sans-serif;color:var(--tm);text-align:center;margin-top:.7rem;}
+.ok-msg{display:none;background:rgba(118,114,78,.1);border:1px solid rgba(118,114,78,.3);border-radius:10px;padding:1.1rem;text-align:center;margin-top:.9rem;}
+.ok-msg p{font-size:.82rem;font-family:sans-serif;color:var(--green);}
+/* AUDIO */
+.aw{background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;overflow:hidden;}
+.aw textarea{width:100%;border:none;border-bottom:1px solid rgba(84,66,54,.1);border-radius:0;padding:.7rem .85rem;font-size:.88rem;font-family:sans-serif;color:var(--brown);outline:none;resize:none;height:72px;line-height:1.5;display:block;background:white;}
+.actl{display:flex;align-items:center;gap:.55rem;padding:.45rem .7rem;background:#faf8f4;}
+.bmk{background:none;border:1.5px solid rgba(153,92,68,.4);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;flex-shrink:0;font-size:.95rem;}
+.bmk.rec{background:var(--clay);border-color:var(--clay);animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.mst{font-size:.68rem;font-family:sans-serif;color:var(--tm);flex:1;}
+.mst.on{color:var(--clay);}
+.bclr{background:none;border:none;color:var(--tm);font-size:.7rem;font-family:sans-serif;cursor:pointer;}
+/* PHOTO UPLOAD */
+.photo-upload-box{background:white;border:1.5px dashed rgba(153,92,68,.35);border-radius:10px;padding:1rem;text-align:center;cursor:pointer;transition:all .2s;margin-top:.3rem;}
+.photo-upload-box:active{background:#faf8f4;}
+.photo-upload-box input[type=file]{display:none;}
+.pub-icon{font-size:1.5rem;margin-bottom:.3rem;}
+.pub-label{font-size:.78rem;font-family:sans-serif;color:var(--tm);}
+.pub-label strong{color:var(--clay);}
+.photo-preview{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.7rem;}
+.photo-thumb{position:relative;width:72px;height:72px;}
+.photo-thumb img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid rgba(84,66,54,.15);}
+.photo-thumb button{position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:var(--clay);border:none;color:white;font-size:.65rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+/* CHECKLIST */
+#cl-screen{background:var(--cream);}
+.cl-body{padding:1.1rem;flex:1;}
+.area-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem;margin-bottom:1rem;}
+.area-card{background:white;border:1px solid rgba(84,66,54,.12);border-radius:10px;padding:.85rem .7rem;cursor:pointer;text-align:center;transition:all .18s;}
+.area-card:active{transform:scale(.97);}
+.area-card .acn{font-size:.82rem;font-family:sans-serif;color:var(--brown);font-weight:500;line-height:1.3;}
+.area-card .acs{font-size:.62rem;font-family:sans-serif;color:var(--tm);margin-top:.1rem;}
+.cluster-card{background:white;border:1px solid rgba(84,66,54,.12);border-radius:10px;padding:1rem;cursor:pointer;margin-bottom:.65rem;transition:all .18s;}
+.cluster-card:active{transform:scale(.99);}
+.cluster-card .cc-title{font-size:.95rem;font-family:sans-serif;font-weight:600;color:var(--brown);font-style:italic;margin-bottom:.3rem;}
+.cluster-card .cc-sub{font-size:.72rem;font-family:sans-serif;color:var(--tm);line-height:1.4;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(58,45,36,.6);z-index:200;align-items:center;justify-content:center;padding:1.5rem;}
+.modal-overlay.show{display:flex;}
+.modal-box{background:var(--cream);border-radius:16px;padding:1.8rem 1.5rem;max-width:300px;width:100%;text-align:center;}
+.modal-icon{font-size:2rem;margin-bottom:.75rem;}
+.modal-title{font-size:1.3rem;font-style:italic;color:var(--brown);margin-bottom:.5rem;}
+.modal-sub{font-size:.78rem;font-family:sans-serif;color:var(--tm);line-height:1.5;margin-bottom:1.4rem;}
+.modal-btns{display:flex;gap:.7rem;}
+.modal-btns button{flex:1;padding:.75rem;border:none;border-radius:9px;font-family:sans-serif;font-size:.85rem;cursor:pointer;}
+.mbtn-ok{background:var(--clay);color:var(--cream);}
+.mbtn-bk{background:rgba(84,66,54,.1);color:var(--brown);}
+.cl-header-info{background:white;border:1px solid rgba(84,66,54,.1);border-radius:10px;padding:1rem;margin-bottom:1rem;}
+.cl-area-name{font-size:1.1rem;font-style:italic;color:var(--brown);margin-bottom:.6rem;}
+.cl-section{margin-bottom:1.2rem;}
+.cl-sec-title{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--tm);font-family:sans-serif;padding:.5rem 0;border-bottom:1px solid rgba(84,66,54,.1);margin-bottom:.6rem;}
+.cl-item{display:flex;align-items:flex-start;gap:.75rem;padding:.55rem 0;border-bottom:1px solid rgba(84,66,54,.05);}
+.cl-item:last-child{border-bottom:none;}
+.cl-cb{width:20px;height:20px;border:1.5px solid rgba(153,92,68,.4);border-radius:5px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:.1rem;transition:all .18s;}
+.cl-cb.checked{background:var(--clay);border-color:var(--clay);}
+.cl-cb.checked::after{content:'✓';color:white;font-size:.7rem;font-weight:bold;}
+.cl-txt{font-size:.82rem;font-family:sans-serif;color:var(--brown);line-height:1.4;flex:1;}
+.cl-note input{width:100%;background:#faf8f4;border:1px solid rgba(84,66,54,.12);border-radius:6px;padding:.4rem .65rem;font-size:.75rem;font-family:sans-serif;color:var(--brown);outline:none;margin-top:.3rem;}
+.cl-progress{background:rgba(84,66,54,.08);border-radius:20px;height:6px;margin-bottom:1rem;overflow:hidden;}
+.cl-prog-bar{height:100%;background:var(--clay);border-radius:20px;transition:width .3s;}
+.cl-prog-txt{font-size:.68rem;font-family:sans-serif;color:var(--tm);text-align:right;margin-bottom:.3rem;}
+/* INVENTORY */
+.inv-item{background:white;border:1px solid rgba(84,66,54,.1);border-radius:10px;padding:.85rem 1rem;margin-bottom:.6rem;display:flex;align-items:center;gap:.9rem;}
+.inv-name{font-size:.88rem;font-family:sans-serif;color:var(--brown);flex:1;}
+.inv-qty{display:flex;align-items:center;gap:.5rem;}
+.inv-qty button{width:30px;height:30px;border-radius:50%;border:1.5px solid rgba(153,92,68,.3);background:none;color:var(--clay);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:sans-serif;}
+.inv-qty input{width:42px;height:30px;text-align:center;border:1px solid rgba(84,66,54,.2);border-radius:6px;font-size:.9rem;font-family:sans-serif;color:var(--brown);outline:none;background:white;}
+/* REPORTS ADMIN */
+#rep-screen{background:var(--cream);}
+.rep-body{padding:1.1rem;}
+.rg{margin-bottom:1.4rem;}
+.rg h2{font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--tm);font-family:sans-serif;margin-bottom:.8rem;padding-bottom:.45rem;border-bottom:1px solid rgba(84,66,54,.1);}
+.acc{background:white;border:1px solid rgba(84,66,54,.12);border-radius:10px;margin-bottom:.55rem;overflow:hidden;}
+.acc-hdr{padding:.85rem .95rem;display:flex;align-items:center;gap:.7rem;cursor:pointer;}
+.pav{width:32px;height:32px;border-radius:50%;background:rgba(153,92,68,.12);display:flex;align-items:center;justify-content:center;font-size:.72rem;font-family:sans-serif;font-weight:500;color:var(--clay);flex-shrink:0;}
+.pnm{font-size:.83rem;font-family:sans-serif;color:var(--brown);flex:1;}
+.parr{color:var(--tm);font-size:.75rem;transition:transform .2s;}
+.parr.open{transform:rotate(90deg);}
+.acc-body{display:none;border-top:1px solid rgba(84,66,54,.08);}
+.acc-body.open{display:block;}
+.ritem{padding:.7rem .95rem .7rem 3.2rem;border-bottom:1px solid rgba(84,66,54,.06);cursor:pointer;}
+.ritem:last-child{border-bottom:none;}
+.ritem:active{background:#faf8f4;}
+.ri-lbl{font-size:.8rem;font-family:sans-serif;color:var(--brown);}
+.ri-dt{font-size:.66rem;font-family:sans-serif;color:var(--tm);margin-top:.12rem;}
+.no-rep{padding:.7rem .95rem .7rem 3.2rem;font-size:.75rem;font-family:sans-serif;color:var(--tm);font-style:italic;}
+#con-screen{background:var(--cream);}
+.conbody{padding:1.4rem 1.1rem;}
+.cs{text-align:center;padding:2.5rem 1rem;}
+.cs .csi{font-size:2.2rem;margin-bottom:.9rem;}
+.cs h3{color:var(--brown);font-size:1.05rem;font-weight:normal;font-style:italic;margin-bottom:.45rem;}
+.cs p{color:var(--tm);font-size:.8rem;font-family:sans-serif;line-height:1.6;}
+.doc-viewer{background:white;border:1px solid rgba(84,66,54,.1);border-radius:12px;padding:1.2rem;font-family:sans-serif;}
+.doc-note{background:rgba(153,92,68,.07);border-left:3px solid var(--clay);padding:.5rem .75rem;border-radius:0 6px 6px 0;font-size:.73rem;color:var(--plum);font-family:sans-serif;line-height:1.4;margin:.5rem 0;}
+.crit-box{background:rgba(118,114,78,.08);border:1px solid rgba(118,114,78,.2);border-radius:10px;padding:.9rem;margin-top:.5rem;}
+.crit-box .crit-lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--green);font-family:sans-serif;margin-bottom:.6rem;}
+.crit-row{font-size:.76rem;font-family:sans-serif;color:var(--brown);padding:.25rem 0;border-bottom:1px solid rgba(118,114,78,.15);}
+.crit-row:last-child{border-bottom:none;}
+.sec-band{font-size:.65rem;text-transform:uppercase;letter-spacing:.12em;font-family:sans-serif;color:white;background:var(--brown);border-radius:6px;padding:.35rem .75rem;margin:.9rem 0 .6rem;display:block;}
+</style>
+</head>
+<body>
+
+<div id="ls" class="screen active">
+  <div class="lt">Tierramor</div><div class="ls2">Portal Operativo</div>
+  <div class="lc">
+    <label>Usuario</label><input type="text" id="lu" placeholder="tu.nombre" autocomplete="username">
+    <label>Contraseña</label><input type="password" id="lp" placeholder="••••••••" autocomplete="current-password">
+    <button class="btn-login" onclick="doLogin()">Ingresar</button>
+    <div class="lerr" id="lerr"></div>
+  </div>
+</div>
+
+<div id="home" class="screen">
+  <div class="hero"><div class="hero-t">Tierramor Ops</div><div class="hero-s">Portal Operativo</div></div>
+  <div class="dept-sec">
+    <div class="sec-lbl">Selecciona tu departamento</div>
+    <button class="dept-btn" onclick="openDept('limpieza')"><div class="dico a">HK</div><div class="dinf"><h3>Limpieza</h3><p>Manuales, checklists e inventarios</p></div><span class="dbadge on">Activo</span></button>
+    <button class="dept-btn" onclick="openDept('mantenimiento')"><div class="dico b">MT</div><div class="dinf"><h3>Mantenimiento</h3><p>Manuales preventivos y reportes</p></div><span class="dbadge on">Activo</span></button>
+    <button class="dept-btn" onclick="openDept('proveeduria')"><div class="dico c">PT</div><div class="dinf"><h3>Proveduría y Transportes</h3><p>Calendario y recursos operativos</p></div><span class="dbadge on">Activo</span></button>
+    <button class="dept-btn" id="btn-rep" style="display:none" onclick="openReports()"><div class="dico d">RP</div><div class="dinf"><h3>Reportes</h3><p>Revisión de reportes enviados</p></div><span class="dbadge adm">Admin</span></button>
+  </div>
+</div>
+
+<div id="dept" class="screen">
+  <div class="hdr"><button class="btn-bk" onclick="nav('home')">←</button><span class="hdr-t" id="dept-title">Departamento</span><button class="btn-out" onclick="logout()">Salir</button></div>
+  <div class="sbar"><div class="swrap"><span class="sico">🔍</span><input type="text" id="si" placeholder="Buscar..." oninput="filterCards()"></div></div>
+  <div class="gsec"><div class="glbl">Recursos</div><div class="grid" id="rgrid"></div><div class="divider"></div><div class="glbl" id="rlist-lbl" style="display:none">Reportes</div><div id="rlist"></div></div>
+</div>
+
+<div id="fs" class="screen">
+  <div class="hdr"><button class="btn-bk" id="fs-back" onclick="nav('dept')">←</button><span class="hdr-t" id="ft">Reporte</span><button class="btn-out" onclick="logout()">Salir</button></div>
+  <div class="fbody" id="fbody"></div>
+</div>
+
+<div id="cl-screen" class="screen">
+  <div class="hdr"><button class="btn-bk" id="cl-back" onclick="nav('dept')">←</button><span class="hdr-t" id="cl-title">Checklist</span><button class="btn-out" onclick="logout()">Salir</button></div>
+  <div class="cl-body" id="cl-body"></div>
+</div>
+
+<div id="con-screen" class="screen">
+  <div class="hdr"><button class="btn-bk" id="con-back" onclick="nav('dept')">←</button><span class="hdr-t" id="con-title">Recurso</span><button class="btn-out" onclick="logout()">Salir</button></div>
+  <div class="conbody" id="conbody"></div>
+</div>
+
+<div id="rep-screen" class="screen">
+  <div class="hdr"><button class="btn-bk" onclick="nav('home')">←</button><span class="hdr-t">Reportes</span><button class="btn-out" onclick="logout()">Salir</button></div>
+  <div class="rep-body" id="rep-body"></div>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <div class="modal-icon">📋</div>
+    <div class="modal-title">Listo para comenzar</div>
+    <div class="modal-sub" id="modal-sub"></div>
+    <div class="modal-btns"><button class="mbtn-bk" onclick="closeModal()">← Atrás</button><button class="mbtn-ok" onclick="confirmChecklist()">Aceptar ✓</button></div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──
+const USERS=[
+  {user:'admin',pass:'tierramor2024',name:'Administrador',role:'admin'},
+  {user:'rol1',pass:'rol1pass',name:'Rol 1',role:'limpieza'},
+  {user:'rol2',pass:'rol2pass',name:'Rol 2',role:'limpieza'},
+  {user:'manto1',pass:'manto123',name:'Colaborador Mantenimiento',role:'mantenimiento'},
+];
+const COLABS_LIMP=['Angie Marcela Román Mendoza','Lidia Yesenia Baltodano Juarez'];
+const COLABS_MANTO=['Clever Chavarría Venegas','Freddy Gerardo Fonseca Rangel'];
+const stored={limpieza:[],mantenimiento:[]};
+let CU=null,CD=null,pendingCL=null,activeRec=null,checkedMap={};
+let uploadedPhotos=[];
+
+const CAL_IDS={
+  'cal-limpieza':'c_054c31b4e8e09f946d99b72bf667d10578fd7db7427906dd3604c39926371484@group.calendar.google.com',
+  'cal-manto':'c_13962be80e3d98529a539831bf1b832b9f1839925686f69f57b2bf86dc06984e@group.calendar.google.com',
+  'cal-transporte':'c_3d9aa6550f8f2406c869c3f26c6c5779ddbadcacae515f94bbd8b8818ae27d12@group.calendar.google.com',
+};
+const CAL_LABELS={'cal-limpieza':'Limpieza','cal-manto':'Mantenimiento','cal-transporte':'Proveduría y Transportes'};
+
+// ── DEPT CONFIG ──
+const DEPTS={
+  limpieza:{label:'Limpieza',resources:[
+    {id:'manual-limp',title:'Manual de Limpieza General',desc:'Procedimientos y estándares',type:'doc'},
+    {id:'checklist-limp',title:'Checklist por Área',desc:'Verificación de tareas',type:'checklist'},
+    {id:'inventarios',title:'Inventarios',desc:'Control de insumos',type:'inventarios'},
+    {id:'frases-en',title:'Frases Comunes en Inglés',desc:'Próximamente disponible'},
+    {id:'cal-limpieza',title:'Calendario',desc:'Turnos y eventos del equipo',type:'cal'},
+  ],reports:[
+    {label:'Reporte de Labores',form:'labores',cls:''},
+    {label:'Limpieza de Áreas',form:'areas',cls:''},
+  ]},
+  mantenimiento:{label:'Mantenimiento',resources:[
+    {id:'manual-prev',title:'Manual de Mantenimiento',desc:'Estándares y procedimientos',type:'doc'},
+    {id:'manual-piscina',title:'Manual de Piscina',desc:'Mantenimiento de piscinas'},
+    {id:'checklist-manto',title:'Checklist por Cluster',desc:'Inspección por zona',type:'checklist'},
+    {id:'cal-manto',title:'Calendario',desc:'Tareas programadas y eventos',type:'cal'},
+  ],reports:[
+    {label:'Reporte de Trabajo',form:'trabajo',cls:''},
+    {label:'Reporte de Avería',form:'averia',cls:'averia'},
+    {label:'Solicitud de Materiales',form:'materiales',cls:'materiales'},
+  ]},
+  proveeduria:{label:'Proveduría y Transportes',resources:[
+    {id:'cal-transporte',title:'Calendario de Transportes',desc:'Viajes y logística',type:'cal'},
+    {id:'proveedores',title:'Catálogo de Proveedores',desc:'Contactos, productos y crédito',type:'proveedores'},
+  ],reports:[]},
+};
+
+// ── NAV ──
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+function nav(to){stopRec();if(to==='home')show('home');else if(to==='dept')openDept(CD);}
+
+// ── AUTH ──
+function doLogin(){
+  const u=document.getElementById('lu').value.trim().toLowerCase(),p=document.getElementById('lp').value;
+  const m=USERS.find(x=>x.user===u&&x.pass===p);
+  if(m){CU=m;document.getElementById('lerr').textContent='';document.getElementById('btn-rep').style.display=m.role==='admin'?'':'none';show('home');}
+  else document.getElementById('lerr').textContent='Usuario o contraseña incorrectos.';
+}
+document.getElementById('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+function logout(){CU=null;document.getElementById('lu').value='';document.getElementById('lp').value='';stopRec();show('ls');}
+
+// ── DEPT ──
+function openDept(dept){
+  CD=dept;
+  const d=DEPTS[dept];
+  document.getElementById('dept-title').textContent=d.label;
+  document.getElementById('rgrid').innerHTML=d.resources.map(r=>`
+    <div class="gcard" onclick="openResource('${r.id}','${r.title}','${r.type||'doc'}')">
+      <div class="ct">${r.title}</div><div class="cd">${r.desc||''}</div>
+    </div>`).join('');
+  const rl=document.getElementById('rlist');
+  const rlbl=document.getElementById('rlist-lbl');
+  if(d.reports.length){
+    rlbl.style.display='';
+    rl.innerHTML=d.reports.map(r=>`
+      <button class="rbtn ${r.cls}" onclick="openForm('${r.form}')">
+        <div class="rdot"></div><span>${r.label}</span><span class="arr">→</span>
+      </button>`).join('');
+  } else {rlbl.style.display='none';rl.innerHTML='';}
+  document.getElementById('si').value='';
+  show('dept');
+}
+
+function filterCards(){
+  const q=document.getElementById('si').value.toLowerCase();
+  document.querySelectorAll('.gcard').forEach(c=>{c.style.display=c.textContent.toLowerCase().includes(q)?'':'none';});
+}
+
+function openResource(id,title,type){
+  if(type==='checklist'){openChecklistMenu(id);return;}
+  if(type==='cal'){openCalendar(id);return;}
+  if(type==='inventarios'){openInventarios();return;}
+  if(type==='proveedores'){openProveedores();return;}
+  if(id==='frases-en'){
+    document.getElementById('con-title').textContent='Frases Comunes en Inglés';
+    document.getElementById('con-back').onclick=()=>nav('dept');
+    document.getElementById('conbody').innerHTML=`<div class="cs"><div class="csi">🇺🇸</div><h3>Frases Comunes en Inglés</h3><p>Esta sección estará disponible próximamente.</p></div>`;
+    show('con-screen');return;
+  }
+  document.getElementById('con-title').textContent=title;
+  document.getElementById('con-back').onclick=()=>nav('dept');
+  let html='';
+  if(id==='manual-limp')html=renderManualLimp();
+  else if(id==='manual-prev')html=renderManualManto();
+  else html=`<div class="cs"><div class="csi">📄</div><h3>${title}</h3><p>El contenido estará disponible aquí próximamente.</p></div>`;
+  document.getElementById('conbody').innerHTML=html;
+  show('con-screen');
+}
+
+// ── CALENDAR ──
+function openCalendar(id){
+  const calId=CAL_IDS[id],label=CAL_LABELS[id];
+  const enc=encodeURIComponent(calId);
+  const src=`https://calendar.google.com/calendar/embed?src=${enc}&ctz=America%2FCosta_Rica&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=0&showCalendars=0&showTz=0&mode=MONTH&bgcolor=%23E8E2D1&color=%23995C44`;
+  document.getElementById('con-title').textContent=`Calendario — ${label}`;
+  document.getElementById('con-back').onclick=()=>nav('dept');
+  document.getElementById('conbody').innerHTML=`
+    <div style="font-size:.75rem;font-family:sans-serif;color:var(--tm);font-style:italic;margin-bottom:.9rem;">Calendario de ${label} · Solo lectura</div>
+    <div style="background:white;border:1px solid rgba(84,66,54,.1);border-radius:12px;overflow:hidden;">
+      <iframe src="${src}" style="border:none;width:100%;height:520px;display:block;" frameborder="0" scrolling="no"></iframe>
+    </div>
+    <div style="font-size:.68rem;font-family:sans-serif;color:var(--tm);text-align:center;margin-top:.75rem;line-height:1.5;">Para agregar o editar eventos, hazlo directamente en Google Calendar.</div>`;
+  show('con-screen');
+}
+
+// ── INVENTARIOS ──
+function openInventarios(){
+  document.getElementById('con-title').textContent='Inventarios';
+  document.getElementById('con-back').onclick=()=>nav('dept');
+  document.getElementById('conbody').innerHTML=`
+    <div style="font-size:.78rem;font-family:sans-serif;color:var(--tm);font-style:italic;margin-bottom:1.2rem;">Selecciona el inventario a registrar</div>
+    <div class="gcard" onclick="openRopaCama()" style="margin-bottom:.7rem;">
+      <div class="ct">Inventario de Ropa de Cama</div>
+      <div class="cd">Sábanas, fundas, cobijas, duvets y más</div>
+    </div>
+    <div class="gcard" onclick="openPropsMenu()">
+      <div class="ct">Inventario de Props de Wellness</div>
+      <div class="cd">Colchonetas, bloques, correas y accesorios</div>
+    </div>`;
+  show('con-screen');
+}
+
+// ── ROPA DE CAMA ──
+const ROPA_ITEMS=[
+  'Topper Individual','Topper Matrimonial','Topper King',
+  'Forro de cama Individual','Forro de cama Queen','Forro de cama King',
+  'Sábana Individual','Sábana Queen','Sábana King',
+  'Cubre Duvet Individual','Cubre Duvet Queen','Cubre Duvet King',
+  'Duvet Individual','Duvet Queen','Duvet King',
+  'Pie de cama',
+  'Forro de almohada Standard','Forro de almohada King',
+  'Alfombra','Mosquitero Individual','Mosquitero King',
+];
+
+function openRopaCama(){
+  document.getElementById('con-title').textContent='Ropa de Cama';
+  document.getElementById('con-back').onclick=()=>openInventarios();
+  document.getElementById('conbody').innerHTML=`
+    <div style="font-size:.78rem;font-family:sans-serif;color:var(--tm);font-style:italic;margin-bottom:1rem;">Registra las cantidades actuales de cada artículo</div>
+    <div class="fg"><label>Responsable</label>
+      <select id="inv-colab"><option value="">— Seleccionar —</option>${COLABS_LIMP.map(n=>`<option>${n}</option>`).join('')}</select>
+    </div>
+    <div class="fg"><label>Fecha</label><input type="date" id="inv-fecha" value="${new Date().toISOString().split('T')[0]}"></div>
+    ${ROPA_ITEMS.map((item,i)=>`
+      <div class="inv-item">
+        <span class="inv-name">${item}</span>
+        <div class="inv-qty">
+          <button onclick="adjQty('rc-${i}',-1)">−</button>
+          <input type="number" id="rc-${i}" value="0" min="0">
+          <button onclick="adjQty('rc-${i}',1)">+</button>
+        </div>
+      </div>`).join('')}
+    <div class="fg" style="margin-top:1rem"><label>Observaciones</label><textarea id="inv-obs" placeholder="Artículos dañados, faltantes, notas..."></textarea></div>
+    ${photoUploadWidget('inv-photos')}
+    <button class="btn-sub" id="inv-sub" onclick="submitInventario('ropa-cama')">Guardar Inventario</button>
+    <div class="ok-msg" id="inv-ok"><p>✅ Inventario guardado correctamente.</p></div>`;
+  show('con-screen');
+}
+
+// ── PROPS WELLNESS ──
+const PROPS_MALOCA=[
+  'Matts de yoga negros','Blocks de yoga','Correas de yoga','Almohadones (Bolsters)',
+];
+const PROPS_MOVEMENT=[
+  'Matts de yoga verdes','Blocks de yoga','Correas de yoga',
+  'Silla de suelo','Almohadones (Bolsters)','Cojines redondos','Cojines grandes','Cojines medianos',
+];
+
+function openPropsMenu(){
+  document.getElementById('con-title').textContent='Props de Wellness';
+  document.getElementById('con-back').onclick=()=>openInventarios();
+  document.getElementById('conbody').innerHTML=`
+    <div style="font-size:.78rem;font-family:sans-serif;color:var(--tm);font-style:italic;margin-bottom:1.2rem;">Selecciona el espacio a inventariar</div>
+    <div class="gcard" onclick="openPropsForm('maloca')" style="margin-bottom:.7rem;">
+      <div class="ct">Props Maloca</div>
+      <div class="cd">Matts, blocks, correas y bolsters</div>
+    </div>
+    <div class="gcard" onclick="openPropsForm('movement')">
+      <div class="ct">Props Movement Studio</div>
+      <div class="cd">Matts, blocks, correas, cojines y sillas</div>
+    </div>`;
+  show('con-screen');
+}
+
+function openPropsForm(space){
+  const items=space==='maloca'?PROPS_MALOCA:PROPS_MOVEMENT;
+  const title=space==='maloca'?'Props Maloca':'Props Movement Studio';
+  document.getElementById('con-title').textContent=title;
+  document.getElementById('con-back').onclick=()=>openPropsMenu();
+  document.getElementById('conbody').innerHTML=`
+    <div style="font-size:.78rem;font-family:sans-serif;color:var(--tm);font-style:italic;margin-bottom:1rem;">Registra las cantidades actuales</div>
+    <div class="fg"><label>Responsable</label>
+      <select id="inv-colab"><option value="">— Seleccionar —</option>${COLABS_LIMP.map(n=>`<option>${n}</option>`).join('')}</select>
+    </div>
+    <div class="fg"><label>Fecha</label><input type="date" id="inv-fecha" value="${new Date().toISOString().split('T')[0]}"></div>
+    ${items.map((item,i)=>`
+      <div class="inv-item">
+        <span class="inv-name">${item}</span>
+        <div class="inv-qty">
+          <button onclick="adjQty('pr-${i}',-1)">−</button>
+          <input type="number" id="pr-${i}" value="0" min="0">
+          <button onclick="adjQty('pr-${i}',1)">+</button>
+        </div>
+      </div>`).join('')}
+    <div class="fg" style="margin-top:1rem"><label>Observaciones</label><textarea id="inv-obs" placeholder="Artículos dañados, faltantes, notas..."></textarea></div>
+    ${photoUploadWidget('inv-photos')}
+    <button class="btn-sub" id="inv-sub" onclick="submitInventario('props-${space}')">Guardar Inventario</button>
+    <div class="ok-msg" id="inv-ok"><p>✅ Inventario guardado correctamente.</p></div>`;
+  show('con-screen');
+}
+
+function adjQty(id,delta){
+  const el=document.getElementById(id);
+  el.value=Math.max(0,(parseInt(el.value)||0)+delta);
+}
+
+function submitInventario(type){
+  const colab=document.getElementById('inv-colab')?.value;
+  if(!colab){alert('Por favor selecciona el responsable.');return;}
+  document.getElementById('inv-ok').style.display='block';
+  document.getElementById('inv-sub').disabled=true;
+  // TODO: conectar a Google Sheets via Apps Script
+}
+
+// ── PHOTO UPLOAD WIDGET ──
+function photoUploadWidget(groupId){
+  return`<div class="fg">
+    <label>Fotografías</label>
+    <div class="photo-upload-box" onclick="document.getElementById('file-${groupId}').click()">
+      <input type="file" id="file-${groupId}" accept="image/*" multiple capture="environment"
+        onchange="handlePhotoUpload(event,'${groupId}')">
+      <div class="pub-icon">📷</div>
+      <div class="pub-label">Toca para <strong>tomar o adjuntar fotos</strong></div>
+      <div style="font-size:.65rem;font-family:sans-serif;color:var(--tm);margin-top:.2rem;">Se guardarán en Google Drive al enviar</div>
+    </div>
+    <div class="photo-preview" id="prev-${groupId}"></div>
+  </div>`;
+}
+
+function handlePhotoUpload(event,groupId){
+  const files=Array.from(event.target.files);
+  const preview=document.getElementById('prev-'+groupId);
+  files.forEach((file,idx)=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const id=`${groupId}-${Date.now()}-${idx}`;
+      const thumb=document.createElement('div');
+      thumb.className='photo-thumb';
+      thumb.id='thumb-'+id;
+      thumb.innerHTML=`<img src="${e.target.result}"><button onclick="removePhoto('${id}','${groupId}')">×</button>`;
+      preview.appendChild(thumb);
+      if(!window._photos) window._photos={};
+      if(!window._photos[groupId]) window._photos[groupId]=[];
+      window._photos[groupId].push({id,name:file.name,data:e.target.result});
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function removePhoto(id,groupId){
+  document.getElementById('thumb-'+id)?.remove();
+  if(window._photos?.[groupId]){
+    window._photos[groupId]=window._photos[groupId].filter(p=>p.id!==id);
+  }
+}
+
+// ── CHECKLIST MENU ──
+const iBasico=['Conexión eléctrica principal funcionando','Funcionamiento de outlets eléctricos','Funcionamiento de luces (internas y externas)','Funcionamiento de abanico(s) / ventilador(es)','Funcionamiento de llavines y cerraduras','Funcionamiento de ventanas (abren, cierran, traban correctamente)','Daños visibles en estructura (paredes, cielo raso, piso, puertas)','Presencia de humedad, manchas de agua o filtraciones','Presencia de plagas o nidos de insectos','Estado de basureros (limpios, con bolsa, tapados)'];
+const iBano=[...iBasico,'Funcionamiento de ducha (presión y temperatura)','Funcionamiento de grifo del lavatorio','Estado de la caja de aserrín (nivel adecuado, sin mal olor)','Funcionamiento del inodoro / sistema de compostaje','Presencia de fugas o taponamientos visibles','Reposición de papel higiénico, jabón y toallas','Estado de espejos y accesorios de baño'];
+const iCasita=[...iBasico,'Funcionamiento de ducha (presión y temperatura de agua)','Estado del mosquitero (sin roturas ni separaciones)','Estado del colchón y textiles (sin manchas, sin humedad)','Funcionamiento de cerrojo interior de privacidad','Estado de repisas, mesa y mobiliario','Visibilidad desde exterior (privacidad del huésped)'];
+
+const CL_LIMPIEZA=[
+  {id:'salon-recepcion',name:'Salón y Recepción',sub:'Áreas conjuntas',
+   criterios:['Sin polvo ni residuos en superficies','Mobiliario alineado y seco','Cubertería y servilletas organizadas','Sin basura ni objetos ajenos','Mostrador impecable y ordenado'],
+   sections:[
+    {title:'Limpieza de Salón',desc:'Limpiar el salón principal asegurando pisos, superficies, mobiliario y cubertería en orden.',
+     items:['Barrer y limpiar el piso del salón','Limpiar superficies de las mesas','Limpiar y ordenar sillas','Organizar cubertería y servilletas','Verificar que no haya basura ni objetos ajenos']},
+    {title:'Limpieza de Recepción',desc:'Mantener la recepción impecable y ordenada.',
+     items:['Limpiar mostrador de recepción','Barrer el área','Ordenar materiales y documentos visibles','Limpiar sillas y área de espera','Revisar filtro de agua — Recepción']},
+   ]},
+  {id:'juicebar-cl',name:'Juice Bar',sub:'Área exterior de servicio',
+   criterios:['Ningún residuo visible en superficies o pisos','Mobiliario alineado y seco','Basureros limpios y tapados','Área fresca y lista para el próximo servicio'],
+   sections:[
+    {title:'Limpieza de Juice Bar',desc:'',
+     items:['Confirmar sin huéspedes antes de iniciar','Retirar vasos, botellas, cáscaras y servilletas','Limpiar mesas, barra y repisas con paño húmedo. Secar completamente','Desinfectar manijas y zonas de alto contacto','Barrer toda el área: esquinas, debajo de mesas y accesos','Trapear con agua y desinfectante','Retirar hojas o tierra del exterior','Limpiar maceteros','Vaciar y reponer bolsa de basura. Mantener tapa cerrada','Alinear mesas, sillas y bancos','Apagar las luces si no hay uso activo']},
+    {title:'Filtro de Agua — Juice Bar',desc:'Verificar que el filtro esté operativo.',
+     items:['Revisar filtro de agua — Juice Bar','Reportar cualquier anomalía o filtro que requiera cambio'],
+     note:'Agregar hielo del Juice Bar de estar disponible.'},
+   ]},
+  {id:'maloca',name:'Maloca',sub:'Área de eventos',
+   criterios:['Piso limpio y seco','Columnas y paredes sin residuos','Baños limpios y abastecidos','Basureros colocados'],
+   sections:[
+    {title:'Preparación de Maloca',desc:'',
+     items:['Barrer y limpiar el piso (solo con agua)','Limpiar columnas, paredes y superficies','Retirar objetos de eventos anteriores','Verificar que el espacio esté libre y ordenado','Colocar basureros','Agregar accesorios de yoga si se requiere','Limpiar y desinfectar inodoros y lavamanos de baños','Limpiar pisos y paredes de baños','Reponer papel higiénico y jabón en baños','Vaciar y limpiar papeleras de baños','Revisar cantidad de servilletas en baños']},
+    {title:'Filtro de Agua — Maloca',desc:'',
+     items:['Revisar filtro de agua — Maloca','Reportar cualquier anomalía o filtro que requiera cambio']},
+   ]},
+  {id:'banos-b1',name:'Baños Principales B1',sub:'Baños secos',
+   criterios:['Aserrín suficiente','Papel higiénico abastecido','Área limpia y sin olores'],
+   sections:[{title:'Inspección Baños B1',desc:'',
+    items:['Revisar aserrín — cubrir contenido','Verificar stock de papel higiénico'],
+    paperField:true,
+    extraItems:['Limpiar lavamanos y superficies','Revisar puertas y cerraduras','Reportar a mantenimiento si hay anomalías']}]},
+  {id:'banos-b2',name:'Baños Principales B2',sub:'Baños secos',
+   criterios:['Aserrín suficiente','Papel higiénico abastecido','Área limpia y sin olores'],
+   sections:[{title:'Inspección Baños B2',desc:'',
+    items:['Revisar aserrín — cubrir contenido','Verificar stock de papel higiénico'],
+    paperField:true,
+    extraItems:['Limpiar lavamanos y superficies','Revisar puertas y cerraduras','Reportar a mantenimiento si hay anomalías']}]},
+  {id:'banos-7600',name:'Baños 7600',sub:'Baños secos',
+   criterios:['Aserrín suficiente','Papel higiénico abastecido','Área limpia y sin olores'],
+   sections:[{title:'Inspección Baños 7600',desc:'',
+    items:['Revisar aserrín — cubrir contenido','Verificar stock de papel higiénico'],
+    paperField:true,
+    extraItems:['Limpiar lavamanos y superficies','Revisar puertas y cerraduras','Reportar a mantenimiento si hay anomalías']}]},
+  {id:'banos-madera',name:'Baños de Madera',sub:'Baños secos',
+   criterios:['Aserrín suficiente','Papel higiénico abastecido','Área limpia y sin olores'],
+   sections:[{title:'Inspección Baños de Madera',desc:'',
+    items:['Revisar aserrín — cubrir contenido','Verificar stock de papel higiénico'],
+    paperField:true,
+    extraItems:['Limpiar lavamanos y superficies','Revisar puertas y cerraduras','Reportar a mantenimiento si hay anomalías']}]},
+  {id:'banos-teca',name:'Baños de Teca',sub:'Baños secos',
+   criterios:['Aserrín suficiente','Papel higiénico abastecido','Área limpia y sin olores'],
+   sections:[{title:'Inspección Baños de Teca',desc:'',
+    items:['Revisar aserrín — cubrir contenido','Verificar stock de papel higiénico'],
+    paperField:true,
+    extraItems:['Limpiar lavamanos y superficies','Revisar puertas y cerraduras','Reportar a mantenimiento si hay anomalías']}]},
+  {id:'estudio-movimiento',name:'Estudio de Movimiento',sub:'Área de práctica',
+   criterios:['Piso limpio y seco','Superficies sin polvo','Espacio libre y ordenado'],
+   sections:[{title:'Preparación del Estudio de Movimiento',desc:'',
+    items:['Barrer y limpiar el piso (solo con agua)','Limpiar superficies, paredes y columnas','Retirar objetos de usos anteriores','Verificar que el espacio esté libre y ordenado','Colocar basureros']}]},
+  {id:'cowork',name:'Cowork',sub:'Área de trabajo',
+   criterios:['Superficies sin polvo ni manchas','Piso limpio y seco','Mobiliario alineado','Basureros vacíos'],
+   sections:[{title:'Preparación de Cowork',desc:'',
+    items:['Barrer y limpiar el piso','Limpiar superficies y mobiliario','Retirar objetos ajenos','Verificar que el espacio esté libre y ordenado','Colocar basureros']}]},
+  {id:'piscina-limp',name:'Piscina',sub:'Deck y área exterior',
+   criterios:['Deck limpio y seco','Sillas y almohadones distribuidos correctamente','Sin almohadones dañados'],
+   sections:[{title:'Preparación de Piscina',desc:'',
+    items:['Limpiar deck de la piscina','Distribuir sillas según la disposición acordada','Verificar que estén en buen estado','Sacar los almohadones de bodega','Distribuir almohadones según la disposición acordada','Retirar almohadones en mal estado y reportar']}]},
+];
+
+const CL_MANTO_CLUSTERS=[
+  {id:'transito',name:'Tránsito Constante',sub:'Oficina · Juice Bar · Salón de Cocina y Recepción',areas:[{id:'oficina',name:'Oficina',items:[...iBasico,'Funcionamiento de equipos de cómputo','Estado de router / conectividad','Funcionamiento del aire acondicionado (si aplica)','Estado de impresora y periféricos','Cables organizados, sin riesgos de tropiezo']},{id:'juicebar',name:'Juice Bar',items:[...iBasico,'Funcionamiento de licuadora / extractor','Estado de refrigeradora o nevera de bebidas','Funcionamiento del grifo / toma de agua','Estado de barra exterior','Stock visible de insumos (reportar faltantes)']},{id:'salon-rec',name:'Salón de Cocina y Recepción',items:[...iBasico,'Estado de mostrador y mobiliario','Estado de filtro de agua (presión y funcionamiento)']},]},
+  {id:'cluster1',name:'Cluster 1',sub:'Bodega · Terralab · Puente · Movement Studio · Lounge · Duchas · Baños Principales',areas:[{id:'storage',name:'Storage / Bodega',items:[...iBasico,'Organización visible del almacenamiento','Estado de estantes y anclajes','Presencia de plagas en productos almacenados','Insumos críticos en stock adecuado']},{id:'terralab',name:'Terralab',items:[...iBasico,'Estado de equipos y herramientas de laboratorio','Funcionamiento de equipos de refrigeración o incubación','Organización y etiquetado de insumos','Ventilación adecuada del espacio']},{id:'bridge',name:'Hanging Bridge',note:'⚠️ Estructura de seguridad crítica.',items:['Estado de cables o estructura de soporte','Estado de tablones o superficie de paso','Barandas firmes y sin daños','Sin presencia de humedad excesiva o vegetación adherida','Iluminación del puente funcionando (si aplica)']},{id:'movement',name:'Movement Studio',items:[...iBasico,'Estado del piso','Estado de espejos','Funcionamiento de equipo de sonido','Estado de colchonetas / props','Espacio libre de obstáculos']},{id:'lounge',name:'Lounge / Deck',items:[...iBasico,'Estado de muebles y tapizado','Estado de hamacas o mobiliario exterior','Estado del deck (sin tablas sueltas, astillas o daños)','Iluminación exterior funcionando']},{id:'duchas-main',name:'Duchas Principales',items:iBano},{id:'banos-main',name:'Baños Principales',items:iBano},]},
+  {id:'cluster2',name:'Cluster 2',sub:'Toensmeier · Baños 7600 · Baño del Templo · Lancaster · Götsch · Holzer · Cocina Residentes · Ingham · Carson',areas:[{id:'toensmeier',name:'Toensmeier',items:iCasita},{id:'banos7600',name:'Baños 7600',items:iBano},{id:'bath-bridge',name:'Baño del Templo',items:iBano},{id:'lancaster',name:'Lancaster',items:iCasita},{id:'gotsch',name:'Götsch',items:iCasita},{id:'holzer',name:'Holzer',items:iCasita},{id:'cocina-res',name:'Cocina de Residentes',items:[...iBasico,'Funcionamiento de quemadores / cocina','Funcionamiento de extractor de olores / campana','Estado de refrigeradora','Funcionamiento de lavaplatos y grifo','Presencia de fugas bajo el fregadero','Estado de superficies de preparación','Almacenamiento correcto de alimentos e insumos']},{id:'ingham',name:'Ingham',items:iCasita},{id:'carson',name:'Carson',items:iCasita},]},
+  {id:'cluster3',name:'Cluster 3',sub:'Baño de Madera · Hememway · Primavesi · Salatin · Shiva · Savory · Yeomans · Fukuoka · Mollison',areas:[{id:'bath-wood',name:'Baño de Madera',items:iBano},{id:'hememway',name:'Hememway',items:iCasita},{id:'primavesi',name:'Primavesi',items:iCasita},{id:'salatin',name:'Salatin',items:iCasita},{id:'shiva',name:'Shiva',items:iCasita},{id:'savory',name:'Savory',items:iCasita},{id:'yeomans',name:'Yeomans',items:iCasita},{id:'fukuoka',name:'Fukuoka',items:iCasita},{id:'mollison',name:'Mollison',items:iCasita},]},
+  {id:'cluster4',name:'Cluster 4',sub:'Starhawk · Crawford · Eisenstein · Doherty · Macy · Baños Bahareque · Wex Camp · Maloca',areas:[{id:'starhawk',name:'Starhawk',items:iCasita},{id:'crawford',name:'Crawford',items:iCasita},{id:'eisenstein',name:'Eisenstein',items:iCasita},{id:'doherty',name:'Doherty',items:iCasita},{id:'macy',name:'Macy',items:iCasita},{id:'bah-bath',name:'Baños Bahareque',items:iBano},{id:'wex-camp',name:'Wex Camp',items:[...iBasico,'Estado de carpa o estructura temporal','Estado de tarima o base elevada','Ventilación e iluminación adecuadas','Funcionamiento del sistema sanitario asociado']},{id:'maloca-ev',name:'Maloca',note:'⚠️ Espacio de alta significancia cultural.',items:[...iBasico,'Estado de estructura de techo','Estado de bambú o madera estructural expuesta','Estado del piso','Funcionamiento de sistema de audio','Estado del baño y bodega asociados']},{id:'maloca-bath',name:'Maloca Bathroom',items:iBano},{id:'maloca-st',name:'Maloca Storage',items:[...iBasico,'Organización visible del almacenamiento','Estado de estantes y anclajes','Presencia de plagas en productos almacenados','Insumos críticos en stock adecuado']},]},
+  {id:'diario',name:'Atención Diaria',sub:'Piscina · Sistemas de Agua · Casita Azul',areas:[{id:'piscina-mt',name:'Piscina',note:'El sistema arranca a 20 PSI y cae a 10 PSI. Nunca debe superar los 25 PSI.',items:['Estado de estructura, deck, duchas y enchapado','Estado inicial del sistema de bombeo y filtración','Niveles químicos: Sal PPM (mín. 3000), pH, ORP','Revisión de canastillas','Revisión visual de canastilla de bomba','Aspirado y llenado de piscina','Niveles químicos finales: Sal PPM (mín. 3000), pH, ORP']},{id:'agua',name:'Sistemas de Agua',items:['Nivel de agua visible o indicado en el sistema','Presencia de fugas, humedad inusual o manchas en tuberías','Estado físico del tanque o estructura','Lectura del medidor correspondiente','Presión del sistema (normal / baja / alta)','Estado de tapas y sellos','Funcionamiento de válvulas de corte','Presencia de vectores o contaminantes externos','Registro completado en formulario']},{id:'casita-azul',name:'Casita Azul',items:iBasico},]},
+];
+
+function openChecklistMenu(resourceId){
+  document.getElementById('cl-title').textContent='Checklist';
+  document.getElementById('cl-back').onclick=()=>nav('dept');
+  let html='';
+  if(CD==='limpieza'){
+    html=`<div class="glbl">Selecciona el área a inspeccionar</div><div class="area-grid">
+      ${CL_LIMPIEZA.map(a=>`<div class="area-card" onclick="promptChecklist('${a.id}','limpieza')">
+        <div class="acn">${a.name}</div><div class="acs">${a.sub}</div></div>`).join('')}
+    </div>`;
+  } else {
+    html=`<div class="glbl">Selecciona el cluster a inspeccionar</div>`;
+    CL_MANTO_CLUSTERS.forEach(cl=>{
+      html+=`<div class="cluster-card" onclick="promptChecklist('${cl.id}','mantenimiento')">
+        <div class="cc-title">${cl.name}</div><div class="cc-sub">${cl.sub}</div>
+        ${cl.note?`<div style="font-size:.67rem;font-family:sans-serif;color:var(--clay);margin-top:.3rem;">${cl.note}</div>`:''}
+      </div>`;
+    });
+  }
+  document.getElementById('cl-body').innerHTML=html;
+  show('cl-screen');
+}
+
+function promptChecklist(id,dept){
+  let name='',sub='';
+  if(dept==='limpieza'){const a=CL_LIMPIEZA.find(x=>x.id===id);name=a.name;sub=a.sub;}
+  else{const cl=CL_MANTO_CLUSTERS.find(x=>x.id===id);name=cl.name;sub=cl.sub;}
+  pendingCL={id,dept};
+  document.getElementById('modal-sub').innerHTML=`Vas a iniciar el checklist de inspección para:<br><strong style="color:var(--brown)">${name}</strong><br><span style="font-size:.75rem;color:var(--tm);">${sub}</span><br><br>Asegúrate de estar en el área indicada.`;
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal(){document.getElementById('modal').classList.remove('show');pendingCL=null;}
+function confirmChecklist(){document.getElementById('modal').classList.remove('show');if(pendingCL)startChecklist(pendingCL.id,pendingCL.dept);}
+
+function startChecklist(id,dept){
+  checkedMap={};
+  let obj,allItems=[],sectionsHtml='',name='';
+  if(dept==='limpieza'){
+    obj=CL_LIMPIEZA.find(a=>a.id===id);name=obj.name;
+    obj.sections.forEach((sec,si)=>{
+      sec.items.forEach((item,ii)=>allItems.push({si,ii,item}));
+      sectionsHtml+=`<div class="cl-section">
+        ${sec.title?`<div class="cl-sec-title">${sec.title}</div>`:''}
+        ${sec.desc?`<p style="font-size:.75rem;font-family:sans-serif;color:var(--tm);font-style:italic;margin-bottom:.5rem;line-height:1.4;">${sec.desc}</p>`:''}
+        ${sec.items.map((item,ii)=>clItem(si,ii,item,0)).join('')}
+        ${sec.note?`<div class="doc-note">📌 ${sec.note}</div>`:''}
+      </div>`;
+    });
+    if(obj.criterios){sectionsHtml+=`<div class="crit-box" style="margin-bottom:1rem;"><div class="crit-lbl">Criterios de limpieza esperada</div>${obj.criterios.map(c=>`<div class="crit-row">✓ ${c}</div>`).join('')}</div>`;}
+  } else {
+    obj=CL_MANTO_CLUSTERS.find(cl=>cl.id===id);name=obj.name;
+    if(obj.note)sectionsHtml+=`<div class="doc-note">${obj.note}</div>`;
+    obj.areas.forEach((area,ai)=>{
+      area.items.forEach((item,ii)=>allItems.push({si:ai,ii,item}));
+      sectionsHtml+=`<div class="cl-section"><div class="cl-sec-title">${area.name}${area.note?` — <span style="color:var(--clay);font-size:.65rem;">${area.note}</span>`:''}</div>
+        ${area.items.map((item,ii)=>clItem(ai,ii,item,0)).join('')}
+      </div>`;
+    });
+  }
+  const total=allItems.length;
+  // re-render with correct total
+  let finalSections='';
+  if(dept==='limpieza'){
+    obj.sections.forEach((sec,si)=>{
+      finalSections+=`<div class="cl-section">
+        ${sec.title?`<div class="cl-sec-title">${sec.title}</div>`:''}
+        ${sec.desc?`<p style="font-size:.75rem;font-family:sans-serif;color:var(--tm);font-style:italic;margin-bottom:.5rem;">${sec.desc}</p>`:''}
+        ${sec.items.map((item,ii)=>clItem(si,ii,item,total)).join('')}
+        ${sec.note?`<div class="doc-note">📌 ${sec.note}</div>`:''}
+      </div>`;
+    });
+    if(obj.criterios){finalSections+=`<div class="crit-box" style="margin-bottom:1rem;"><div class="crit-lbl">Criterios de limpieza esperada</div>${obj.criterios.map(c=>`<div class="crit-row">✓ ${c}</div>`).join('')}</div>`;}
+  } else {
+    if(obj.note)finalSections+=`<div class="doc-note">${obj.note}</div>`;
+    obj.areas.forEach((area,ai)=>{
+      finalSections+=`<div class="cl-section"><div class="cl-sec-title">${area.name}${area.note?` — <span style="color:var(--clay);font-size:.65rem;">${area.note}</span>`:''}</div>
+        ${area.items.map((item,ii)=>clItem(ai,ii,item,total)).join('')}
+      </div>`;
+    });
+  }
+  document.getElementById('cl-title').textContent=name;
+  document.getElementById('cl-back').onclick=()=>openChecklistMenu(dept==='limpieza'?'checklist-limp':'checklist-manto');
+  const colabOpts=dept==='limpieza'?COLABS_LIMP.map(n=>`<option>${n}</option>`).join(''):COLABS_MANTO.map(n=>`<option>${n}</option>`).join('');
+  document.getElementById('cl-body').innerHTML=`
+    <div class="cl-header-info">
+      <div class="cl-area-name">${name}</div>
+      <div class="fg" style="margin-bottom:.6rem"><label>Encargado</label>
+        <select id="cl-colab"><option value="">— Seleccionar —</option>${colabOpts}</select></div>
+      ${dept==='limpieza'?`<div class="fg" style="margin-bottom:.6rem"><label>Turno</label>
+        <select id="cl-turno"><option value="AM">AM — 7:00am a 12:00md</option><option value="PM">PM — 12:30pm a 3:00pm</option></select></div>`:''}
+      <div class="fg" style="margin-bottom:0"><label>Fecha</label>
+        <input type="date" id="cl-fecha" value="${new Date().toISOString().split('T')[0]}"></div>
+    </div>
+    <div class="cl-prog-txt" id="prog-txt">0 / ${total} ítems completados</div>
+    <div class="cl-progress"><div class="cl-prog-bar" id="prog-bar" style="width:0%"></div></div>
+    ${finalSections}
+    <div class="fg" style="margin-top:.5rem"><label>Observaciones generales</label>
+      <div class="aw"><textarea id="ta-cl-obs" placeholder="Observaciones generales..." style="width:100%;border:none;padding:.7rem .85rem;font-size:.88rem;font-family:sans-serif;color:var(--brown);outline:none;resize:none;height:72px;line-height:1.5;display:block;background:white;border-bottom:1px solid rgba(84,66,54,.1);"></textarea>
+      <div class="actl"><button class="bmk" id="mic-cl" onclick="toggleMic('cl')">🎙</button>
+      <span class="mst" id="ms-cl">Toca para dictar</span>
+      <button class="bclr" onclick="document.getElementById('ta-cl-obs').value=''">Limpiar</button></div></div>
+    </div>
+    ${photoUploadWidget('cl-photos')}
+    <button class="btn-sub" id="cl-submit" onclick="submitChecklist('${id}','${dept}')">Enviar Reporte de Inspección</button>
+    <div class="fnote">Los datos y fotos se guardarán en Google Drive / Sheets</div>
+    <div class="ok-msg" id="cl-ok"><p>✅ Reporte de inspección enviado correctamente.</p></div>`;
+  show('cl-screen');
+}
+
+function clItem(si,ii,item,total){
+  return`<div class="cl-item"><div class="cl-cb" id="cb-${si}-${ii}" onclick="toggleCB(${si},${ii},${total})"></div>
+    <div style="flex:1"><div class="cl-txt">${item}</div>
+    <div class="cl-note"><input type="text" placeholder="Nota opcional..." id="cn-${si}-${ii}"></div></div></div>`;
+}
+function toggleCB(si,ii,total){
+  const k=`${si}-${ii}`;checkedMap[k]=!checkedMap[k];
+  const cb=document.getElementById(`cb-${si}-${ii}`);
+  checkedMap[k]?cb.classList.add('checked'):cb.classList.remove('checked');
+  const done=Object.values(checkedMap).filter(Boolean).length;
+  document.getElementById('prog-txt').textContent=`${done} / ${total} ítems completados`;
+  document.getElementById('prog-bar').style.width=`${(done/total)*100}%`;
+}
+function submitChecklist(id,dept){
+  const colab=document.getElementById('cl-colab')?.value;
+  if(!colab){alert('Por favor selecciona el encargado.');return;}
+  let obj,allItems=[];
+  if(dept==='limpieza'){obj=CL_LIMPIEZA.find(a=>a.id===id);obj.sections.forEach((s,si)=>s.items.forEach((item,ii)=>allItems.push({item,checked:!!checkedMap[`${si}-${ii}`],nota:document.getElementById(`cn-${si}-${ii}`)?.value||''})));}
+  else{obj=CL_MANTO_CLUSTERS.find(cl=>cl.id===id);obj.areas.forEach((area,ai)=>area.items.forEach((item,ii)=>allItems.push({item,checked:!!checkedMap[`${ai}-${ii}`],nota:document.getElementById(`cn-${ai}-${ii}`)?.value||''})));}
+  const turno=document.getElementById('cl-turno')?.value||'';
+  const photos=window._photos?.['cl-photos']||[];
+  const entry={id:Date.now(),type:'checklist',area:obj.name,areaId:id,colaborador:colab,turno,
+    fecha:document.getElementById('cl-fecha')?.value||'',obs:document.getElementById('ta-cl-obs')?.value||'',
+    items:allItems,total:allItems.length,done:allItems.filter(i=>i.checked).length,
+    photoCount:photos.length,timestamp:new Date().toLocaleString('es-CR')};
+  stored[dept].push(entry);
+  checkedMap={};
+  document.getElementById('cl-ok').style.display='block';
+  document.getElementById('cl-submit').disabled=true;
+  // TODO: upload photos to Google Drive via Apps Script
+}
+
+// ── FORMS ──
+function aw(id,ph){
+  return`<div class="aw"><textarea id="ta-${id}" placeholder="${ph}" style="width:100%;border:none;border-bottom:1px solid rgba(84,66,54,.1);padding:.7rem .85rem;font-size:.88rem;font-family:sans-serif;color:var(--brown);outline:none;resize:none;height:72px;line-height:1.5;display:block;background:white;"></textarea>
+  <div class="actl"><button class="bmk" id="mic-${id}" onclick="toggleMic('${id}')">🎙</button>
+  <span class="mst" id="ms-${id}">Toca para dictar</span>
+  <button class="bclr" onclick="document.getElementById('ta-${id}').value=''">Limpiar</button></div></div>`;
+}
+
+function openForm(formId){
+  stopRec();
+  const FORMS={
+    labores:{title:'Reporte de Labores',dept:'limpieza',btnCls:'',html:()=>`
+      <div class="frow"><div class="fg"><label>Fecha</label><input type="date" id="f-fecha"></div>
+      <div class="fg"><label>Turno</label><select id="f-turno"><option value="AM">AM (7am–12md)</option><option value="PM">PM (12:30–3pm)</option></select></div></div>
+      <div class="fg"><label>Rol</label><select id="f-rol"><option value="Rol 1">Rol 1</option><option value="Rol 2">Rol 2</option></select></div>
+      <div class="fg"><label>Colaboradora</label><select id="f-colab"><option value="">— Seleccionar —</option>${COLABS_LIMP.map(n=>`<option>${n}</option>`).join('')}</select></div>
+      <div class="fg"><label>Áreas trabajadas</label><textarea id="f-areas" placeholder="Lista las áreas donde trabajaste..."></textarea></div>
+      <div class="fg"><label>Duración (h)</label><input type="number" id="f-dur" step="0.5" min="0" placeholder="0"></div>
+      <div class="fg"><label>Observaciones</label>${aw('obs','Observaciones o dicta nota de voz...')}</div>
+      ${photoUploadWidget('form-photos')}`},
+    areas:{title:'Limpieza de Áreas',dept:'limpieza',btnCls:'',html:()=>`
+      <div class="frow"><div class="fg"><label>Fecha</label><input type="date" id="f-fecha"></div>
+      <div class="fg"><label>Turno</label><select id="f-turno"><option value="AM">AM (7am–12md)</option><option value="PM">PM (12:30–3pm)</option></select></div></div>
+      <div class="fg"><label>Rol</label><select id="f-rol"><option value="Rol 1">Rol 1</option><option value="Rol 2">Rol 2</option></select></div>
+      <div class="fg"><label>Área</label><select id="f-area"><option>Recepción</option><option>Habitaciones</option><option>Áreas comunes</option><option>Cocina</option><option>Baños</option><option>Exteriores</option><option>Otra</option></select></div>
+      <div class="fg"><label>Colaboradora</label><select id="f-colab"><option value="">— Seleccionar —</option>${COLABS_LIMP.map(n=>`<option>${n}</option>`).join('')}</select></div>
+      <div class="fg"><label>Duración (min)</label><input type="number" id="f-dur" min="0" placeholder="0"></div>
+      <div class="fg"><label>Estado al terminar</label><select id="f-estado"><option>Excelente</option><option>Bueno</option><option>Regular — requiere seguimiento</option></select></div>
+      <div class="fg"><label>Observaciones</label>${aw('obs','Observaciones o dicta nota de voz...')}</div>
+      ${photoUploadWidget('form-photos')}`},
+    trabajo:{title:'Reporte de Trabajo',dept:'mantenimiento',btnCls:'',html:()=>`
+      <div class="frow"><div class="fg"><label>Fecha</label><input type="date" id="f-fecha"></div>
+      <div class="fg"><label>Prioridad</label><select id="f-prior"><option>Normal</option><option>Urgente</option><option>Programado</option></select></div></div>
+      <div class="fg"><label>Encargado</label><select id="f-colab"><option value="">— Seleccionar —</option>${COLABS_MANTO.map(n=>`<option>${n}</option>`).join('')}</select></div>
+      <div class="fg"><label>Área / Ubicación</label><input type="text" id="f-ubic" placeholder="Ej: Habitación 3, Piscina..."></div>
+      <div class="fg"><label>Estado</label><select id="f-est"><option>Completado</option><option>En proceso</option><option>Pendiente de materiales</option><option>Requiere revisión</option></select></div>
+      <div class="fg"><label>Descripción del trabajo</label>${aw('desc','¿Qué se realizó?...')}</div>
+      <div class="fg"><label>Materiales utilizados</label>${aw('mat','Lista materiales...')}</div>
+      <div class="fg"><label>Observaciones</label>${aw('obs','¿Acción adicional?...')}</div>
+      ${photoUploadWidget('form-photos')}`},
+    averia:{title:'Reporte de Avería',dept:'mantenimiento',btnCls:'red',html:()=>`
+      <div class="doc-note" style="margin-bottom:1rem;">🔴 Usa este reporte cuando detectes una avería que requiere atención, independientemente de una inspección programada.</div>
+      <div class="frow"><div class="fg"><label>Fecha</label><input type="date" id="f-fecha"></div>
+      <div class="fg"><label>Urgencia</label><select id="f-prior">
+        <option value="URGENTE">🔴 Urgente — riesgo inmediato</option>
+        <option value="PRIORIDAD">🟡 Prioridad — resolver en 24h</option>
+        <option value="PROGRAMAR">🟢 Programar</option>
+      </select></div></div>
+      <div class="fg"><label>Encargado que reporta</label><select id="f-colab"><option value="">— Seleccionar —</option>${COLABS_MANTO.map(n=>`<option>${n}</option>`).join('')}</select></div>
+      <div class="fg"><label>Área / Ubicación exacta</label><input type="text" id="f-ubic" placeholder="Ej: Toensmeier, Puente colgante..."></div>
+      <div class="fg"><label>Descripción de la avería</label>${aw('desc','Describe la avería con detalle...')}</div>
+      <div class="fg"><label>Acciones tomadas de inmediato</label>${aw('obs','¿Se acordonó el área, se cerró una válvula?...')}</div>
+      ${photoUploadWidget('form-photos')}`},
+    materiales:{title:'Solicitud de Materiales',dept:'mantenimiento',btnCls:'green',html:()=>`
+      <div class="frow"><div class="fg"><label>Fecha</label><input type="date" id="f-fecha"></div>
+      <div class="fg"><label>Prioridad</label><select id="f-prior"><option>Normal</option><option>Urgente</option></select></div></div>
+      <div class="fg"><label>Solicitante</label><select id="f-colab"><option value="">— Seleccionar —</option>${COLABS_MANTO.map(n=>`<option>${n}</option>`).join('')}</select></div>
+      <div class="fg"><label>Área de uso</label><input type="text" id="f-ubic" placeholder="¿Para qué área o proyecto?"></div>
+      <div class="fg"><label>Materiales solicitados</label>${aw('mat','Lista los materiales que necesitas con cantidad aproximada...')}</div>
+      <div class="fg"><label>Justificación / Notas</label>${aw('obs','¿Por qué se necesitan? ¿Hay algún plazo?...')}</div>
+      ${photoUploadWidget('form-photos')}`},
+  };
+  const f=FORMS[formId];
+  document.getElementById('ft').textContent=f.title;
+  document.getElementById('fs-back').onclick=()=>nav('dept');
+  document.getElementById('fbody').innerHTML=`
+    <h2 style="font-size:1.05rem;font-weight:normal;font-style:italic;color:var(--brown);margin-bottom:1.1rem;">${f.title}</h2>
+    ${f.html()}
+    <button class="btn-sub ${f.btnCls}" id="btn-sub" onclick="submitForm('${formId}','${f.dept}')">Enviar</button>
+    <div class="fnote">Los datos y fotos se guardarán en Google Sheets / Drive</div>
+    <div class="ok-msg" id="ok-msg"><p>✅ Enviado correctamente.</p></div>`;
+  const d=document.getElementById('f-fecha');
+  if(d)d.value=new Date().toISOString().split('T')[0];
+  show('fs');
+}
+
+function submitForm(formId,dept){
+  stopRec();
+  const colab=document.getElementById('f-colab')?.value;
+  if(!colab){alert('Por favor selecciona el colaborador.');return;}
+  const photos=window._photos?.['form-photos']||[];
+  const entry={id:Date.now(),type:'form',formId,colaborador:colab,
+    fecha:document.getElementById('f-fecha')?.value||'',
+    turno:document.getElementById('f-turno')?.value||'',
+    rol:document.getElementById('f-rol')?.value||'',
+    prior:document.getElementById('f-prior')?.value||'',
+    obs:document.getElementById('ta-obs')?.value||'',
+    desc:document.getElementById('ta-desc')?.value||'',
+    mat:document.getElementById('ta-mat')?.value||'',
+    area:document.getElementById('f-area')?.value||document.getElementById('f-ubic')?.value||'',
+    estado:document.getElementById('f-est')?.value||document.getElementById('f-estado')?.value||'',
+    dur:document.getElementById('f-dur')?.value||'',
+    photoCount:photos.length,
+    timestamp:new Date().toLocaleString('es-CR')};
+  stored[dept].push(entry);
+  document.getElementById('ok-msg').style.display='block';
+  document.getElementById('btn-sub').disabled=true;
+  // TODO: upload photos to Google Drive, send data to Sheets
+}
+
+// ── AUDIO ──
+function toggleMic(wid){if(activeRec&&activeRec.wid===wid){stopRec();return;}stopRec();startRec(wid);}
+function startRec(wid){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){setMs(wid,'❌ Navegador no soporta dictado',false);return;}
+  const rec=new SR();rec.lang='es-CR';rec.continuous=true;rec.interimResults=true;
+  const btn=document.getElementById('mic-'+wid),ta=document.getElementById('ta-'+wid);
+  if(!btn||!ta)return;
+  btn.classList.add('rec');btn.innerHTML='⏹';setMs(wid,'🔴 Grabando...',true);
+  let base=ta.value;
+  rec.onresult=e=>{let fi='',in2='';for(let i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)fi+=e.results[i][0].transcript+' ';else in2+=e.results[i][0].transcript;}if(fi)base+=fi;ta.value=base+in2;};
+  rec.onerror=()=>{setMs(wid,'Error al grabar.',false);cleanMic(wid);activeRec=null;};
+  rec.onend=()=>{ta.value=base.trim();setMs(wid,'✅ Guardado.',false);cleanMic(wid);activeRec=null;};
+  rec.start();activeRec={rec,wid};btn.onclick=()=>stopRec();
+}
+function stopRec(){if(activeRec){try{activeRec.rec.stop();}catch(e){}cleanMic(activeRec.wid);activeRec=null;}}
+function setMs(wid,msg,on){const el=document.getElementById('ms-'+wid);if(!el)return;el.textContent=msg;on?el.classList.add('on'):el.classList.remove('on');}
+function cleanMic(wid){const b=document.getElementById('mic-'+wid);if(!b)return;b.classList.remove('rec');b.innerHTML='🎙';b.onclick=()=>toggleMic(wid);}
+
+// ── MANUAL LIMPIEZA ──
+const MANUAL_LMP_SECS=[
+  {id:'roles',title:'Roles y Turnos'},
+  {id:'criterios-prep',title:'Criterios y Preparación'},
+  {id:'detalles',title:'Detalles al Limpiar'},
+  {divider:'Áreas Comunes'},
+  {id:'oficina',title:'Oficina'},
+  {id:'juicebar',title:'Juice Bar'},
+  {id:'recepcion',title:'Recepción'},
+  {id:'comedor',title:'Cocina / Comedor'},
+  {id:'templo',title:'Templo'},
+  {id:'cowork',title:'Cowork'},
+  {divider:'Habitaciones'},
+  {id:'casitas-madera',title:'Casitas de Madera'},
+  {id:'casitas-bah',title:'Casitas de Bahareque'},
+  {id:'productos',title:'Catálogo de Productos'},
+];
+
+function renderManualLimp(){
+  let html=`<div style="font-size:.75rem;font-family:sans-serif;color:var(--tm);font-style:italic;margin-bottom:1.2rem;">Estándares, procedimientos y criterios de limpieza · Versión 1.0 · 2025</div>`;
+  MANUAL_LMP_SECS.forEach(s=>{
+    if(s.divider){html+=`<div class="sec-band">${s.divider}</div>`;}
+    else{html+=`<div class="gcard" onclick="openManualSection('limp','${s.id}','${s.title}')" style="margin-bottom:.6rem;"><div class="ct">${s.title}</div></div>`;}
+  });
+  return html;
+}
+
+const MANUAL_MT_SECS=[
+  {id:'intro',title:'Introducción'},{id:'criterios-mt',title:'Criterios Generales'},
+  {id:'seguridad',title:'Aspectos de Seguridad'},{id:'prep-mt',title:'Preparación del Día'},
+  {id:'organizacion',title:'Organización de la Propiedad'},{id:'agua',title:'Sistemas de Agua'},
+  {id:'registro',title:'Registro y Reporte de Anomalías'},
+];
+
+function renderManualManto(){
+  return`<div style="font-size:.75rem;font-family:sans-serif;color:var(--tm);font-style:italic;margin-bottom:1.2rem;">Estándares, procedimientos e inspecciones de mantenimiento · Versión 1.0 · 2025</div>
+  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem;">
+    ${MANUAL_MT_SECS.map(s=>`<div class="gcard" onclick="openManualSection('manto','${s.id}','${s.title}')"><div class="ct">${s.title}</div></div>`).join('')}
+  </div>`;
+}
+
+function mkStepsMT(steps){
+  return steps.map(([t,d],i)=>`<div style="display:flex;gap:.75rem;margin-bottom:.85rem;align-items:flex-start;">
+    <div style="width:26px;height:26px;background:var(--clay);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:.72rem;font-family:sans-serif;font-weight:600;flex-shrink:0;margin-top:.1rem;">${i+1}</div>
+    <div><div style="font-size:.82rem;font-family:sans-serif;font-weight:600;color:var(--brown);margin-bottom:.25rem;">${t}</div>
+    <div style="font-size:.78rem;font-family:sans-serif;color:var(--brown);line-height:1.5;">${d}</div></div></div>`).join('');
+}
+function mkAreaLimp(sub,steps,criterios){
+  return`<div style="font-size:.75rem;font-family:sans-serif;font-style:italic;color:var(--tm);margin-bottom:1rem;">${sub}</div>`
+    +mkStepsMT(steps)
+    +`<div class="crit-box" style="margin-top:.5rem;"><div class="crit-lbl">Criterios de limpieza esperada</div>
+    ${criterios.map(c=>`<div class="crit-row">✓ ${c}</div>`).join('')}</div>`;
+}
+function mkRolTable(rows){
+  return`<div style="border-radius:8px;overflow:hidden;border:1px solid rgba(84,66,54,.1);">
+    ${rows.map(([day,t1,a1,t2,a2],i)=>`
+      <div style="background:${i%2===0?'white':'#faf8f4'};padding:.65rem .8rem;border-bottom:1px solid rgba(84,66,54,.06);">
+        <div style="font-size:.75rem;font-family:sans-serif;font-weight:600;color:var(--brown);margin-bottom:.35rem;">${day}</div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+          <span style="font-size:.65rem;font-family:sans-serif;background:rgba(113,127,126,.15);color:var(--blue);padding:.15rem .45rem;border-radius:20px;white-space:nowrap;">${t1}</span>
+          <span style="font-size:.7rem;font-family:sans-serif;color:var(--brown);flex:1;line-height:1.4;">${a1}</span>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.3rem;">
+          <span style="font-size:.65rem;font-family:sans-serif;background:rgba(153,92,68,.12);color:var(--clay);padding:.15rem .45rem;border-radius:20px;white-space:nowrap;">${t2}</span>
+          <span style="font-size:.7rem;font-family:sans-serif;color:var(--brown);flex:1;line-height:1.4;">${a2}</span>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+const MANUAL_LMP_CONTENT={
+  roles:`<div style="font-size:.78rem;font-family:sans-serif;color:var(--brown);line-height:1.5;margin-bottom:1rem;">El equipo de limpieza opera en dos roles con asignaciones semanales rotativas. Cada rol cubre dos turnos diarios: <strong>AM</strong> (7:00am – 12:00md) y <strong>PM</strong> (12:30pm – 3:00pm).</div>
+  <div style="background:rgba(113,127,126,.08);border:1px solid rgba(113,127,126,.2);border-radius:10px;padding:.9rem;margin-bottom:1rem;">
+    <div style="font-size:.85rem;font-weight:600;font-family:sans-serif;color:var(--blue);margin-bottom:.6rem;font-style:italic;">Rol 1</div>
+    ${mkRolTable([['Lunes','AM','Salón de Cocina y Recepción · Baños principales','PM','Casita Azul · Lavandería'],['Martes','AM','Salón de Cocina y Recepción · Baños 7600 / Baños de Madera · Oficina · Maloca y baños · Toensmeier · Hememway · Primavesi · Salatin','PM','Shiva · Savory · Yeomans · Fukuoka · Mollison'],['Miércoles','AM','Deck de Piscina · Juice Bar · Baños de Teca · Cocina de Residentes · Movement Studio · Salón de Cocina y Recepción','PM','Baños de Teca · Organización Bodega HK · Repaso Baños principales'],['Jueves','AM','Salón de Cocina y Recepción · Baños 7600 / Baños de Madera · Terralab y bodega · Maloca y baños · Baños de Bahareque · Duchas de Bahareque','PM','Lancaster · Götsch · Holzer · Ingham · Carson · Repaso Baño de Madera + Baños Principales'],['Viernes','AM','Salón de Cocina y Recepción · Duchas principales · Lavado tubos de baño','PM','Baños Principales · Lounge / Deck · Starhawk · Eisenstein · Macy']])}
+  </div>
+  <div style="background:rgba(153,92,68,.06);border:1px solid rgba(153,92,68,.15);border-radius:10px;padding:.9rem;">
+    <div style="font-size:.85rem;font-weight:600;font-family:sans-serif;color:var(--clay);margin-bottom:.6rem;font-style:italic;">Rol 2</div>
+    ${mkRolTable([['Lunes','AM','Deck de Piscina · Baños 7600 / Baños de Madera · Reunión de Operaciones','PM','Baños de Teca · Bodega de HK'],['Martes','AM','Baños principales · Juice Bar · Terralab y bodega · Maloca y baños · Baños de Bahareque · Cocina de Residentes · Salón de Cocina y Recepción','PM','Lancaster · Götsch · Holzer · Ingham · Carson · Repaso Baño de Madera + Baños Principales'],['Miércoles','AM','Salón de Cocina y Recepción · Duchas principales · Baños principales · Baños 7600 / Baños de Madera · Cocina de Residentes · Lounge / Deck · Salón de Cocina y Recepción','PM','Limpieza de Vidrios General · Casita Azul'],['Jueves','AM','Baños principales · Juice Bar · Maloca y baños · Oficina · Toensmeier · Hememway · Primavesi · Salatin','PM','Shiva · Savory · Yeomans · Fukuoka · Mollison · Ingham'],['Viernes','AM','Baños principales · Baños 7600 / Baños de Madera · Lavado de salón','PM','Baños de Teca · Movement Studio · Sillas Juice Bar · Crawford · Doherty']])}
+  </div>`,
+
+  'criterios-prep':`<div style="font-size:.78rem;font-family:sans-serif;color:var(--tm);font-style:italic;margin-bottom:1rem;">Principios base y preparación antes de comenzar el turno</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:1.2rem;">
+    ${[['OBSERVABLE','Cualquier persona puede verificar el resultado.'],['REPETIBLE','El resultado no depende de quién limpió; siempre es el mismo.'],['SUFICIENTE','Limpieza efectiva sin obsesión por la perfección. El tiempo importa.'],['SOSTENIBLE','Se puede mantener con ocupación alta o baja, sin agotar al equipo.']].map(([t,d])=>`<div style="background:white;border:1px solid rgba(84,66,54,.1);border-radius:10px;padding:.85rem .8rem;"><div style="font-size:.72rem;font-weight:600;font-family:sans-serif;color:var(--clay);letter-spacing:.06em;margin-bottom:.25rem;">${t}</div><div style="font-size:.75rem;font-family:sans-serif;color:var(--brown);line-height:1.4;">${d}</div></div>`).join('')}
+  </div>
+  ${mkStepsMT([['Revisión del Rol','Llegar puntualmente y revisar la asignación de áreas del día. Confirmar tareas especiales: eventos, visitas, inspecciones.'],['Preparación Personal','Usar uniforme limpio, zapatos cerrados, cabello recogido. Evitar perfumes fuertes. Lavarse las manos antes de empezar.'],['Revisión del Equipo','Trapos limpios, escoba, trapeador, cepillos, guantes, paños de microfibra, esponjas. Desinfectante, limpiavidrios, jabón multiuso, bolsas de basura.'],['Inspección Visual','Pasar por las áreas asignadas haciendo una revisión rápida. Ver ocupación, identificar zonas prioritarias, detectar peligros.'],['Coordinación del Equipo','Comunicar si se necesita apoyo. Avisar a supervisión si falta algún insumo.'],['Actitud','Buena disposición, discreción y comunicación con huéspedes y equipo.']])}`,
+
+  detalles:`<div class="doc-note" style="margin-bottom:.9rem;">⚠️ Si hay alguien en el espacio: esperar si está activamente en uso. Nunca entrar a casitas o baños si hay alguien adentro.</div>`+mkStepsMT([['Preparación','Verificar que el área esté libre. Usar guantes y equipo adecuado. Reunir todos los materiales antes de empezar.'],['Superficies y Mobiliario','Quitar polvo de mesas, repisas, marcos, interruptores y ventiladores. Limpiar manchas visibles. Paño húmedo → secar de inmediato.'],['Pisos','Barrer primero, incluyendo debajo de muebles. Trapear del fondo hacia la salida. Revisar drenajes.'],['Ventanas y Vidrios','Paño seco primero, luego húmedo o limpiavidrios. Revisar marcos y rieles.'],['Baños (Compostaje)','Verificar capa de aserrín. Lavar pisos, paredes, espejos y desagües. Reponer papel, jabón y toallas.'],['Presentación Final','Revisar olor, ventilar si necesario. Alinear muebles. Apagar luces innecesarias.']]),
+  oficina:mkAreaLimp('Área administrativa y operativa',[['Revisión Previa','Confirmar sin reuniones en curso. Anunciarse al entrar.'],['Superficies','Retirar polvo de escritorios, repisas, lámparas y marcos. Limpiar pantallas con paño seco. Desinfectar teléfonos, manijas e interruptores.'],['Pisos','Barrer y trapear con desinfectante suave.'],['Basureros','Vaciar y reemplazar bolsa.'],['Organización','Alinear sillas, cerrar cajones, agrupar cables sueltos.'],['Refrigeradora','Limpiar interior y exterior. Eliminar alimentos en mal estado.'],['Revisión Final','Verificar que luces y aires estén apagados. Dejar registro en WhatsApp.']],['Ninguna superficie con polvo ni manchas','Pisos secos y sin marcas','Escritorios libres de residuos','Basureros vacíos y limpios','Olor neutro','Área lista para uso inmediato']),
+  juicebar:mkAreaLimp('Área exterior de servicio de jugos y bebidas',[['Revisión Inicial','Confirmar sin huéspedes. Retirar vasos, botellas y servilletas.'],['Superficies','Limpiar mesas, barra y repisas con paño húmedo. Secar completamente.'],['Pisos y Entorno','Barrer toda el área. Trapear con agua y desinfectante. Retirar hojas del exterior.'],['Basureros','Vaciar en cada turno. Mantener tapa cerrada.'],['Presentación','Alinear mesas, sillas y bancos. Limpiar elementos decorativos.'],['Revisión Final','Confirmar que el área luzca seca, limpia y ordenada.']],['Ningún residuo visible en superficies o pisos','Mobiliario alineado y seco','Basureros limpios y tapados','Área fresca y lista para el próximo servicio']),
+  recepcion:mkAreaLimp('Punto de bienvenida — zona de alto tránsito',[['Revisión Inicial','Confirmar sin check-in en proceso.'],['Superficies y Mobiliario','Retirar polvo y manchas del mostrador, mesas, sillas y repisas. Desinfectar áreas de alto contacto.'],['Pisos','Barrer con atención a esquinas. Trapear con desinfectante neutro.'],['Basureros y Decoración','Vaciar el basurero. Revisar plantas.'],['Revisión Final','Alinear sillas, cerrar cajones. Registrar en bitácora.']],['Ningún rastro de polvo ni basura','Mobiliario ordenado, limpio y seco','Olor agradable y fresco','Área lista para recibir huéspedes']),
+  comedor:mkAreaLimp('Área de alimentación diaria del equipo y huéspedes',[['Revisión Inicial','Verificar sin personas comiendo. Retirar platos y utensilios olvidados.'],['Superficies y Mobiliario','Limpiar mesas, bancas y sillas. Secar completamente. Alinear.'],['Estaciones de Servicio','Limpiar dispensadores, termos y condimentos. Quitar salpicaduras.'],['Pisos','Barrer restos de comida. Trapear con desinfectante neutro.'],['Basureros','Vaciar mínimo dos veces al día. Mantener tapa cerrada.'],['Revisión Final','Registrar en bitácora: hora, responsable, observaciones.']],['Mesas sin residuos, secas y desinfectadas','Sillas limpias y alineadas','Piso sin restos ni humedad','Basureros vacíos y sin olor','Área ventilada y lista']),
+  templo:`<div class="doc-note" style="margin-bottom:.9rem;">⚠️ Espacio de alta sensibilidad. Limpiar con discreción y sin alterar objetos sagrados sin autorización.</div>`+mkAreaLimp('Espacio de meditación, ceremonias y práctica espiritual',[['Revisión Inicial','Confirmar sin actividades en curso.'],['Superficies','Quitar polvo suavemente con paño seco. No mover objetos de altar sin autorización.'],['Piso','Barrer con escoba suave. Trapear con desinfectante neutro. Asegurar que quede completamente seco.'],['Textiles y Cojines','Sacudir o aspirar suavemente. Manchas: reportar para lavado.'],['Ventilación y Aroma','Abrir ventanas unos minutos. No usar ambientadores artificiales.'],['Revisión Final','Verificar que todo esté en su lugar. Registrar en bitácora.']],['Superficies libres de polvo y telarañas','Piso limpio y seco, sin marcas','Cojines alineados, altares intactos','Olor natural y fresco','Ambiente sereno']),
+  cowork:mkAreaLimp('Espacio de trabajo compartido',[['Revisión Inicial','Verificar si hay personas trabajando. Limpiar silenciosamente los sectores vacíos.'],['Superficies y Mobiliario','Quitar polvo de mesas, escritorios, repisas y sillas. Desinfectar superficies de alto contacto.'],['Equipos Electrónicos','Limpiar pantallas y teclados con paño seco — sin líquidos.'],['Pisos','Barrer incluyendo debajo de escritorios. Trapear con desinfectante neutro.'],['Basureros','Vaciar diariamente.'],['Revisión Final','Apagar luces y ventiladores. Registrar en bitácora.']],['Superficies libres de polvo y manchas','Pisos secos, sin residuos','Mobiliario alineado','Basureros vacíos','Olor fresco y ambiente profesional']),
+  'casitas-madera':`<div class="doc-note" style="margin-bottom:.9rem;">⚠️ Privacidad del huésped: tocar 3 veces y anunciarse. Nunca entrar sin verificar ocupación.</div>`+mkAreaLimp('Unidades de alojamiento en madera',[['Ingreso y Protocolo','Consultar lista de habitaciones ocupadas. Nunca abrir puerta cerrada.'],['Ventilación Inicial','Abrir puertas y ventanas. Revisar si hay humedad u olores.'],['Cama y Textiles','Retirar sábanas solo si checkout. Forro ajustado → sábana uniforme → duvet centrado → almohadas con abertura hacia adentro. ⚠️ NO colocar toallas ni adornos sobre la cama.'],['Superficies y Mobiliario','Quitar polvo de repisas, mesas y lámparas. Desinfectante neutro. No usar cloro sobre madera.'],['Piso','Barrer completamente. Trapear con agua y desinfectante suave — sin exceso de humedad.'],['Ventanas','Limpiar vidrios. Revisar marcos, mosquiteros y rieles.'],['Revisión Final','Cama perfectamente hecha. Mobiliario alineado. Luces apagadas.']],['Olor fresco y natural','Piso limpio y seco, sin polvo ni insectos','Mobiliario alineado','Cama impecablemente presentada','Área lista para recibir huésped']),
+  'casitas-bah':`<div class="doc-note" style="margin-bottom:.9rem;">⚠️ Privacidad del huésped: tocar 3 veces y anunciarse.</div>`+mkAreaLimp('Unidades en materiales naturales — barro, bambú y madera',[['Ingreso y Protocolo','Consultar lista de habitaciones ocupadas. Nunca abrir puerta cerrada.'],['Ventilación Inicial','Abrir puertas y ventanas. Especial cuidado con humedad.'],['Cama y Textiles','Retirar sábanas solo si checkout. Sábana: doblar 20–25 cm sobre el borde superior. ⚠️ NO colocar toallas ni adornos sobre la cama.'],['Superficies y Mobiliario','No usar cloro. Especial cuidado en superficies de barro — evitar exceso de humedad.'],['Piso','Barrer completamente. Trapear sin exceso de humedad.'],['Revisión Final','Cama perfectamente hecha. Mobiliario alineado.']],['Olor fresco y natural','Piso limpio y seco','Cama impecablemente presentada','Materiales naturales sin daños por humedad']),
+  productos:`<div class="doc-note">📌 Catálogo de insumos aprobados por efectividad, seguridad y compatibilidad con materiales naturales.</div><div class="cs" style="padding:2rem 0;"><div class="csi">🧴</div><h3>Fichas de Productos</h3><p>Próximamente: descripción · dilución recomendada · frecuencia · precauciones.</p></div>`,
+};
+
+const MANUAL_MT_CONTENT={
+  intro:`<p style="font-size:.82rem;font-family:sans-serif;color:var(--brown);line-height:1.6;margin-bottom:.8rem;">Este manual establece los estándares, procedimientos e inspecciones de mantenimiento para la totalidad de los espacios de Tierramor.</p>
+  <div class="doc-note">El departamento opera con dos roles: <strong>Responsable de piscina</strong> y <strong>Responsable de sistemas de agua</strong>.</div>`,
+  'criterios-mt':`<div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;">${[['PREVENTIVO','Identificar problemas antes de que se conviertan en fallas.'],['DOCUMENTADO','Toda anomalía se registra. Lo que no se escribe no existe.'],['OPORTUNO','Una intervención a tiempo evita daños mayores.'],['SEGURO','No intervenir en sistemas eléctricos o estructurales sin autorización.']].map(([t,d])=>`<div style="background:white;border:1px solid rgba(84,66,54,.1);border-radius:10px;padding:.85rem .8rem;"><div style="font-size:.72rem;font-weight:600;font-family:sans-serif;color:var(--clay);letter-spacing:.06em;margin-bottom:.25rem;">${t}</div><div style="font-size:.75rem;font-family:sans-serif;color:var(--brown);line-height:1.4;">${d}</div></div>`).join('')}</div>`,
+  seguridad:`<div class="doc-note">⚠️ El cumplimiento de estas normas es obligatorio. Ante cualquier duda, consultar antes de actuar.</div>`+mkStepsMT([['EPP','Guantes, calzado cerrado antideslizante, mascarilla con químicos, lentes en trabajos con partículas, protector solar en exteriores.'],['Electricidad','⚠️ NO intervenir en tableros ni cableado interno. Reportar: cables expuestos, quemaduras en outlets, olor a quemado.'],['Sistemas de Agua','Cerrar la válvula correspondiente antes de intervenir en tuberías. Reportar fugas de inmediato.'],['Trabajo en Altura','Usar escalera estable. No trabajar en altura con lluvia o piso mojado. Comunicar al compañero — nunca solo.'],['Herramientas y Químicos','Guardar herramientas en bodega. Leer instrucciones de dilución. Mantener productos etiquetados.'],['Emergencias','Falla eléctrica mayor: reportar de inmediato. Fuga significativa: cerrar válvula y reportar. Daño estructural: acordonar el área.']]),
+  'prep-mt':mkStepsMT([['Revisión del Rol','Revisar la asignación del día: cluster asignado, tareas especiales y prioridades.'],['Preparación Personal','Uniforme limpio, calzado cerrado y equipo de protección disponible.'],['Revisión del Equipo','Verificar kit de herramientas: llaves, destornilladores, linterna, cinta métrica, cinta aislante.'],['Inspección Visual Inicial','Al llegar a cada área: observar antes de tocar. Detectar anomalías evidentes.'],['Registro y Comunicación','Toda anomalía debe registrarse. Clasificar: URGENTE / PRIORIDAD / PROGRAMAR.']]),
+  organizacion:`${['Tránsito Constante — Oficina · Juice Bar · Salón de Cocina y Recepción','Cluster 1 — Storage · Terralab · Hanging Bridge · Movement Studio · Lounge · Main Shower · Main Bathrooms','Cluster 2 — Toensmeier · Baños 7600 · Baño del Templo · Lancaster · Götsch · Holzer · Cocina de Residentes · Ingham · Carson','Cluster 3 — Wooden Bathroom · Hememway · Primavesi · Salatin · Shiva · Savory · Yeomans · Fukuoka · Mollison','Cluster 4 — Starhawk · Crawford · Eisenstein · Doherty · Macy · Baños Bahareque · Wex Camp · Maloca','Atención Diaria — Piscina · Sistemas de Agua · Casita Azul'].map(c=>`<div style="background:white;border:1px solid rgba(84,66,54,.1);border-radius:8px;padding:.75rem;margin-bottom:.5rem;font-size:.8rem;font-family:sans-serif;color:var(--brown);">${c}</div>`).join('')}`,
+  agua:`<div class="doc-note" style="margin-bottom:.8rem;">⚠️ Ante cualquier anomalía en los sistemas de agua, reportar de inmediato. No intervenir sin autorización.</div>
+  ${[['M1','Pozo Principal','salida del tanque a la par del pozo'],['—','Tanques Pozo Principal','sin medidor activo'],['M2','Tanques Ojoche','entrada de los tanques en la loma'],['M4','Tanque Potable','entrada del tanque a la par de la bodega'],['—','Tanques Bahareque','sin medidor activo'],['—','Sistema Pozo Maloca','sin medidor activo'],['M5/M6','Tanques Piscina','izquierda y derecha']].map(([m,n,d])=>`<div style="background:white;border:1px solid rgba(84,66,54,.1);border-radius:8px;padding:.7rem;margin-bottom:.45rem;display:flex;gap:.7rem;align-items:flex-start;"><span style="font-size:.68rem;font-family:sans-serif;font-weight:600;color:var(--clay);min-width:28px;">${m}</span><div><div style="font-size:.8rem;font-family:sans-serif;color:var(--brown);font-weight:500;">${n}</div><div style="font-size:.7rem;font-family:sans-serif;color:var(--tm);">${d}</div></div></div>`).join('')}`,
+  registro:`<div class="crit-box" style="margin-bottom:1rem;"><div class="crit-lbl">Clasificación de Anomalías</div><div class="crit-row">🔴 URGENTE — Riesgo para personas, daño activo o falla crítica. Reportar de inmediato.</div><div class="crit-row">🟡 PRIORIDAD — Falla que afecta la operación sin riesgo inmediato. Resolver en 24h.</div><div class="crit-row">🟢 PROGRAMAR — Deterioro menor. Incluir en lista de proyectos semanales.</div></div>
+  <div class="doc-note">Canal: Urgentes → llamada al Gerente + WhatsApp. Prioridad → WhatsApp con foto. Programar → bitácora semanal. Agua → formulario Google Forms diario.</div>`,
+};
+
+function openManualSection(manual,sectionId,title){
+  const content=manual==='limp'?MANUAL_LMP_CONTENT[sectionId]:MANUAL_MT_CONTENT[sectionId];
+  if(!content)return;
+  document.getElementById('con-title').textContent=title;
+  document.getElementById('conbody').innerHTML=`<div class="doc-viewer">${content}</div>`;
+  const backFn=manual==='limp'?()=>openResource('manual-limp','Manual de Limpieza General','doc'):()=>openResource('manual-prev','Manual de Mantenimiento','doc');
+  document.getElementById('con-back').onclick=backFn;
+  show('con-screen');
+}
+
+// ── REPORTS ADMIN ──
+function openReports(){
+  const deptLabels={limpieza:'Limpieza',mantenimiento:'Mantenimiento'};
+  const formNames={labores:'Reporte de Labores',areas:'Limpieza de Áreas',trabajo:'Reporte de Trabajo',checklist:'Reporte de Inspección',averia:'Reporte de Avería',materiales:'Solicitud de Materiales'};
+  let html='';
+  for(const dept of['limpieza','mantenimiento']){
+    html+=`<div class="rg"><h2>${deptLabels[dept]}</h2>`;
+    const allColabs=dept==='limpieza'?COLABS_LIMP:COLABS_MANTO;
+    for(const person of allColabs){
+      const ini=person.split(' ').slice(0,2).map(w=>w[0]).join('');
+      const reps=stored[dept].filter(r=>r.colaborador===person);
+      html+=`<div class="acc"><div class="acc-hdr" onclick="toggleAcc(this)">
+        <div class="pav">${ini}</div><span class="pnm">${person}</span>
+        <span style="font-size:.68rem;font-family:sans-serif;color:var(--tm);margin-right:.4rem;">${reps.length} reporte${reps.length!==1?'s':''}</span>
+        <span class="parr">›</span></div><div class="acc-body">`;
+      if(!reps.length)html+=`<div class="no-rep">Sin reportes aún.</div>`;
+      else reps.slice().reverse().forEach(r=>{
+        const lbl=r.type==='checklist'?`Inspección — ${r.area}`:(formNames[r.formId]||r.formId);
+        const extra=[r.turno?`Turno ${r.turno}`:'',r.rol||'',r.photoCount?`📷 ${r.photoCount} foto${r.photoCount!==1?'s':''}`:''].filter(Boolean).join(' · ');
+        html+=`<div class="ritem" onclick="viewReport(${r.id},'${dept}')"><div class="ri-lbl">${lbl}</div><div class="ri-dt">${r.timestamp}${extra?' · '+extra:''}</div></div>`;
+      });
+      html+=`</div></div>`;
+    }
+    html+=`</div>`;
+  }
+  document.getElementById('rep-body').innerHTML=html;
+  show('rep-screen');
+}
+
+function toggleAcc(hdr){hdr.nextElementSibling.classList.toggle('open');hdr.querySelector('.parr').classList.toggle('open');}
+
+function viewReport(id,dept){
+  const r=stored[dept].find(x=>x.id===id);if(!r)return;
+  let rows=[['Colaborador',r.colaborador],['Fecha',r.fecha],['Enviado',r.timestamp]];
+  if(r.turno)rows.push(['Turno',r.turno]);
+  if(r.rol)rows.push(['Rol',r.rol]);
+  if(r.photoCount)rows.push(['Fotos adjuntas',`${r.photoCount} foto${r.photoCount!==1?'s':''} (en Google Drive)`]);
+  if(r.type==='checklist'){
+    rows.unshift(['Área',r.area]);
+    rows.push(['Completado',`${r.done} / ${r.total} ítems`]);
+    if(r.obs)rows.push(['Observaciones',r.obs]);
+    const rowsHtml=rows.map(([k,v])=>`<div style="padding:.5rem 0;border-bottom:1px solid rgba(84,66,54,.08);display:flex;gap:.75rem;"><span style="font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--tm);font-family:sans-serif;min-width:90px;flex-shrink:0;">${k}</span><span style="font-size:.83rem;font-family:sans-serif;color:var(--brown);line-height:1.5;">${v||'—'}</span></div>`).join('');
+    const itemsHtml=r.items.map(i=>`<div style="display:flex;gap:.5rem;align-items:flex-start;padding:.3rem 0;border-bottom:1px solid rgba(84,66,54,.05);"><span>${i.checked?'✅':'⬜'}</span><span style="font-size:.77rem;font-family:sans-serif;color:${i.checked?'var(--brown)':'var(--tm)'};flex:1;line-height:1.4;">${i.item}${i.nota?`<br><span style="color:var(--tm);font-size:.7rem;font-style:italic;">→ ${i.nota}</span>`:''}</span></div>`).join('');
+    document.getElementById('con-title').textContent=`Inspección — ${r.area}`;
+    document.getElementById('conbody').innerHTML=`<div class="doc-viewer">${rowsHtml}<div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--tm);font-family:sans-serif;margin-top:.8rem;margin-bottom:.4rem;">Ítems</div>${itemsHtml}</div>`;
+  } else {
+    const fn={labores:'Reporte de Labores',areas:'Limpieza de Áreas',trabajo:'Reporte de Trabajo',averia:'Reporte de Avería',materiales:'Solicitud de Materiales'};
+    if(r.prior)rows.push(['Prioridad',r.prior]);
+    if(r.area)rows.push(['Área',r.area]);
+    if(r.estado)rows.push(['Estado',r.estado]);
+    if(r.dur)rows.push(['Duración',r.dur]);
+    if(r.desc)rows.push(['Descripción',r.desc]);
+    if(r.mat)rows.push(['Materiales',r.mat]);
+    if(r.obs)rows.push(['Observaciones',r.obs]);
+    const rowsHtml=rows.map(([k,v])=>`<div style="padding:.5rem 0;border-bottom:1px solid rgba(84,66,54,.08);display:flex;gap:.75rem;"><span style="font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--tm);font-family:sans-serif;min-width:90px;flex-shrink:0;">${k}</span><span style="font-size:.83rem;font-family:sans-serif;color:var(--brown);line-height:1.5;">${v||'—'}</span></div>`).join('');
+    document.getElementById('con-title').textContent=fn[r.formId]||r.formId;
+    document.getElementById('conbody').innerHTML=`<div class="doc-viewer">${rowsHtml}</div>`;
+  }
+  document.getElementById('con-back').onclick=()=>openReports();
+  show('con-screen');
+}
+</script>
+</body>
+</html>
