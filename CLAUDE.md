@@ -81,32 +81,39 @@ Para correr el app localmente: `python -m http.server 8080` desde este directori
 - [x] Reestructuración del app original: 1 archivo monolítico (95KB) → 17 módulos ES
 - [x] App corriendo localmente sin errores
 - [x] Repositorio fork configurado y código pusheado
+- [x] Flujos de departamentos Phase 1 mapeados (Producción de Alimentos, Biofábrica, Vivero)
+- [x] PRD Phase 1 escrito y commiteado (`PRD.md`) — 63 historias de usuario, 6 departamentos
 
-### Pendiente (próximos pasos en orden)
-- [ ] Mapear flujos de datos de departamentos Phase 1 (Javier los conoce parcialmente)
-- [ ] Diseñar schema de Supabase para Phase 1
-- [ ] Crear cuenta de Cloudflare
-- [ ] Crear proyecto Supabase
-- [ ] Construir Cloudflare Worker (proxy)
-- [ ] Conectar formularios y checklists a Supabase
-- [ ] Reemplazar usuarios hardcodeados con Supabase Auth
-- [ ] Agregar departamentos nuevos (Food Production, Biofactory, etc.)
+### Próximos pasos (en orden)
+- [ ] **Revisar PRD** con Nicolás — alinear antes de diseñar el schema
+- [ ] **Escribir TDD** (Technical Design Document) — schema de Supabase, API del Worker, enfoque de auth
+- [ ] **Crear cuenta de Cloudflare** (Javier — guiado, gratis)
+- [ ] **Crear proyecto Supabase** (Javier — guiado, gratis en free tier)
+- [ ] **Implementar schema en Supabase** — tablas, relaciones, RLS policies
+- [ ] **Construir Cloudflare Worker** — proxy entre el app y Supabase + Google Drive
+- [ ] **Conectar formularios y checklists existentes a Supabase** — reemplazar almacenamiento en RAM
+- [ ] **Implementar Supabase Auth** — reemplazar usuarios hardcodeados en `js/data/users.js`
+- [ ] **Agregar módulos de nuevos departamentos** — Producción de Alimentos, Biofábrica, Vivero
+- [ ] **Agregar Gallinas** — flujo por mapear, se agrega al PRD en siguiente iteración
 
 ---
 
 ## Departamentos
 
 ### Phase 1 — En construcción
-| Departamento | Estado en portal | Schema Supabase |
-|---|---|---|
-| Limpieza (HK) | ✅ Funcional | Pendiente diseño |
-| Mantenimiento | ✅ Funcional | Pendiente diseño |
-| Proveduría y Transportes | ✅ Parcial (solo calendario) | Pendiente diseño |
-| Producción Agrícola | ❌ No iniciado | Pendiente mapeo de flujos |
-| Biofábrica | ❌ No iniciado | Pendiente mapeo de flujos |
+| Departamento | Estado en portal | Flujo mapeado | Schema Supabase |
+|---|---|---|---|
+| Limpieza | ✅ Funcional | ✅ | Pendiente TDD |
+| Mantenimiento | ✅ Funcional | ✅ | Pendiente TDD |
+| Proveduría y Transportes | ✅ Parcial (solo calendario) | ⚠️ Parcial | Pendiente TDD |
+| Producción de Alimentos | ❌ No iniciado | ✅ | Pendiente TDD |
+| Biofábrica | ❌ No iniciado | ✅ | Pendiente TDD |
+| Vivero | ❌ No iniciado | ✅ | Pendiente TDD |
+| Gallinas | ❌ No iniciado | ❌ Pendiente mapeo | Pendiente TDD |
 
 ### Phase 2 — Requiere discovery con jefes de área
-Kitchen, Experiences, F&B, Marketing, Finanzas (y otros que se identifiquen).
+Cocina, Experiences, F&B, Marketing, Finanzas (y otros que se identifiquen).
+Cada departamento requiere una sesión de discovery de 20–30 min antes de diseñar su módulo.
 
 ---
 
