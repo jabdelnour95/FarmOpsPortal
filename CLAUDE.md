@@ -29,6 +29,22 @@ Para correr el app localmente: `python -m http.server 8080` desde este directori
 
 ---
 
+## Infraestructura
+
+| Servicio | Proyecto | Región | Estado |
+|---|---|---|---|
+| Supabase | `tierramor-portal` | South America (São Paulo) | ✅ Activo — schema instalado |
+| Cloudflare Worker | `tierramor-api` | Auto | ✅ Desplegado — `https://tierramor-api.jabdelnour95.workers.dev` |
+| GitHub Pages | `jabdelnour95/Ops-Portal-V2` | — | ⬜ Pendiente configurar |
+
+**Credenciales:** guardadas en `Docs/Supabase env` (nunca commitear este archivo).
+
+**Nota técnica — Supabase SQL Editor:** No soporta transacciones multi-statement (`BEGIN`/`ROLLBACK`). Cada statement se auto-commitea. Para limpiar datos de prueba, usar DELETEs en orden respetando FK constraints.
+
+**Nota técnica — JWT:** Supabase proyectos nuevos emiten JWTs con algoritmo **ES256** (ECDSA P-256), no HS256. El Worker valida via JWKS (`/auth/v1/.well-known/jwks.json`). El payload del JWT incluye `role: "authenticated"` (rol de Supabase), no el rol de la app — el Worker fetchea el rol real de la tabla `profiles` en cada request autenticado.
+
+---
+
 ## Arquitectura (decisiones confirmadas)
 
 | Capa | Tecnología | Razón |
@@ -49,26 +65,30 @@ Para correr el app localmente: `python -m http.server 8080` desde este directori
 
 ```
 10_OPS_OS/
-├── index.html                  ← Shell del app (solo pantallas y un <script type="module">)
+├── index.html                  ← Shell del app (pantallas + estilos inline + <script type="module">)
 ├── css/
 │   └── styles.css
+├── worker/
+│   ├── worker.js               ← Cloudflare Worker (proxy Supabase + Google Drive)
+│   ├── wrangler.toml           ← Config de deploy
+│   ├── .dev.vars.example       ← Template de variables de entorno
+│   └── .gitignore              ← Excluye .dev.vars y .wrangler/
 ├── js/
 │   ├── app.js                  ← Entry point: importa todo y expone al window
 │   ├── data/
-│   │   ├── users.js            ← Usuarios y colaboradores (temporales — reemplazar con Supabase Auth)
-│   │   ├── departments.js      ← Config de departamentos, calendarios
+│   │   ├── users.js            ← Lista de colaboradores por equipo (referencia, no auth)
+│   │   ├── departments.js      ← Config de departamentos Ops (DEPTS, CAL_IDS, CAL_LABELS)
 │   │   ├── checklists-limpieza.js
 │   │   └── checklists-manto.js
 │   └── modules/
-│       ├── state.js            ← Estado global de la sesión
-│       ├── auth.js             ← Login / logout
-│       ├── navigation.js       ← Navegación entre pantallas
-│       ├── calendar.js         ← (pendiente extraer de navigation.js)
+│       ├── state.js            ← Estado global: currentUser, accessToken, currentDept, deptParent
+│       ├── auth.js             ← Login / logout / restoreSession (conectado al Worker)
+│       ├── navigation.js       ← Navegación + renderHome + galería de departamentos
 │       ├── inventory.js        ← Inventarios de Limpieza
 │       ├── photos.js           ← Upload y preview de fotos
 │       ├── audio.js            ← Dictado de voz (Web Speech API, es-CR)
 │       ├── checklists.js       ← Lógica de checklists
-│       ├── forms.js            ← Formularios de reportes
+│       ├── forms.js            ← Formularios de reportes Ops
 │       ├── manuals.js          ← Manuales de Limpieza y Mantenimiento
 │       └── reports.js          ← Vista de reportes (Admin)
 ```
@@ -78,42 +98,98 @@ Para correr el app localmente: `python -m http.server 8080` desde este directori
 ## Estado actual
 
 ### Completado
-- [x] Reestructuración del app original: 1 archivo monolítico (95KB) → 17 módulos ES
+- [x] Reestructuración del app original: 1 archivo monolítico (95KB) → módulos ES
 - [x] App corriendo localmente sin errores
 - [x] Repositorio fork configurado y código pusheado
 - [x] Flujos de departamentos Phase 1 mapeados (Producción de Alimentos, Biofábrica, Vivero)
 - [x] PRD Phase 1 escrito y commiteado (`PRD.md`) — 63 historias de usuario, 6 departamentos
+- [x] **TDD escrito** — `Docs/TDD.md` — schema completo, API del Worker, auth, decisiones de diseño
+- [x] **Proyecto Supabase creado** — región São Paulo, plan free, proyecto `tierramor-portal`
+- [x] **Schema implementado en Supabase** — 47 tablas, 5 vistas, 13 triggers, 13 funciones
+- [x] **Usuario admin creado** — jabdelnour95@gmail.com, rol admin
+- [x] **Triggers verificados** — generación de IDs (PROD/BIO/VIV/GRP/SUB) y facturas automáticas funcionando
+- [x] **Cloudflare Worker desplegado** — `https://tierramor-api.jabdelnour95.workers.dev` — todas las rutas del TDD, ES256 JWT, rol fetcheado de `profiles`; fotos pendiente Google Drive
+- [x] **Secrets cargados en Cloudflare** — SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_JWT_SECRET
+- [x] **Worker verificado en producción** — login, JWT validation, catálogos e inventario respondiendo con datos reales
+- [x] **Supabase Auth en el frontend** — `auth.js` conectado al Worker, JWT en localStorage, `restoreSession()` al cargar
+- [x] **Dashboard principal rediseñado** — galería de tiles por área (Finca, Operaciones, Cocina, Experiencias), visibilidad por rol y `profile.departments`
+- [x] **Arquitectura de navegación por niveles** — home → sub-galería (finca-home / ops-home) → módulo; botón Atrás rastreado via `state.deptParent`
+- [x] **Reportes movidos a cada sub-galería** — tile Admin-only dentro de Finca y Operaciones (no en el home principal)
 
 ### Próximos pasos (en orden)
-- [ ] **Revisar PRD** con Nicolás — alinear antes de diseñar el schema
-- [ ] **Escribir TDD** (Technical Design Document) — schema de Supabase, API del Worker, enfoque de auth
-- [ ] **Crear cuenta de Cloudflare** (Javier — guiado, gratis)
-- [ ] **Crear proyecto Supabase** (Javier — guiado, gratis en free tier)
-- [ ] **Implementar schema en Supabase** — tablas, relaciones, RLS policies
-- [ ] **Construir Cloudflare Worker** — proxy entre el app y Supabase + Google Drive
-- [ ] **Conectar formularios y checklists existentes a Supabase** — reemplazar almacenamiento en RAM
-- [ ] **Implementar Supabase Auth** — reemplazar usuarios hardcodeados en `js/data/users.js`
-- [ ] **Agregar módulos de nuevos departamentos** — Producción de Alimentos, Biofábrica, Vivero
-- [ ] **Agregar Gallinas** — flujo por mapear, se agrega al PRD en siguiente iteración
+- [ ] **Construir módulos de farm** — Producción de Alimentos, Biofábrica, Vivero (cada uno con su pantalla, formularios y llamadas al Worker)
+- [ ] **Implementar RLS policies en Supabase** — control de acceso por rol y departamento (antes del go-live)
+- [ ] **Crear usuarios de Supabase para el equipo** — justo antes del go-live, cuando los módulos estén listos
+- [ ] **Implementar upload de fotos** — Google Drive via service account (ver TODO en `worker/worker.js:handlePhotos`)
 
 ---
 
 ## Departamentos
 
-### Phase 1 — En construcción
+### Farm Portal — Fase 1 (este proyecto)
 | Departamento | Estado en portal | Flujo mapeado | Schema Supabase |
 |---|---|---|---|
-| Limpieza | ✅ Funcional | ✅ | Pendiente TDD |
-| Mantenimiento | ✅ Funcional | ✅ | Pendiente TDD |
-| Proveduría y Transportes | ✅ Parcial (solo calendario) | ⚠️ Parcial | Pendiente TDD |
-| Producción de Alimentos | ❌ No iniciado | ✅ | Pendiente TDD |
-| Biofábrica | ❌ No iniciado | ✅ | Pendiente TDD |
-| Vivero | ❌ No iniciado | ✅ | Pendiente TDD |
-| Gallinas | ❌ No iniciado | ❌ Pendiente mapeo | Pendiente TDD |
+| Producción de Alimentos | 🔄 Tile placeholder en finca-home | ✅ | ✅ En Supabase |
+| Biofábrica | 🔄 Tile placeholder en finca-home | ✅ | ✅ En Supabase |
+| Vivero | 🔄 Tile placeholder en finca-home | ✅ | ✅ En Supabase |
 
-### Phase 2 — Requiere discovery con jefes de área
-Cocina, Experiences, F&B, Marketing, Finanzas (y otros que se identifiquen).
-Cada departamento requiere una sesión de discovery de 20–30 min antes de diseñar su módulo.
+### Ops Portal — Proyecto separado (Nicolás Salas)
+Limpieza, Mantenimiento y Proveduría. Stack independiente (Google Sheets como backend).
+Integración con Farm Portal diferida a Fase 2.
+
+### Fase 2 — Pendiente
+Integración Farm Portal ↔ Ops Portal + departamentos nuevos (Cocina, Experiences, F&B, Marketing, Finanzas, Gallinas).
+Cada departamento nuevo requiere una sesión de discovery de 20–30 min antes de diseñar su módulo.
+
+---
+
+## Arquitectura de navegación (frontend)
+
+### Pantallas y flujo
+
+```
+#ls (login)
+  └─→ #home (galería principal)
+        ├─→ #finca-home (sub-galería Finca)
+        │     ├─→ Producción de Alimentos  [placeholder → #con-screen]
+        │     ├─→ Biofábrica               [placeholder → #con-screen]
+        │     ├─→ Vivero                   [placeholder → #con-screen]
+        │     └─→ Reportes (admin)         [placeholder → #con-screen]
+        ├─→ #ops-home (sub-galería Operaciones)
+        │     ├─→ #dept (Limpieza)
+        │     ├─→ #dept (Mantenimiento)
+        │     ├─→ #dept (Proveduría)
+        │     └─→ #rep-screen (Reportes, admin)
+        ├─→ Cocina       [tile deshabilitado — Próximamente]
+        └─→ Experiencias [tile deshabilitado — Próximamente]
+```
+
+### Visibilidad de tiles por rol
+
+La función `renderHome()` en `navigation.js` filtra los tiles del home usando `canSeeTile()`:
+- `profile.role === 'admin'` → ve todo
+- Otros roles → ve solo los tiles donde `profile.departments[]` contiene al menos un `deptKey` del tile
+
+El Worker retorna en el login: `user.profile.{ full_name, role, departments[] }`.
+
+Tiles de Reportes dentro de sub-galerías: visibilidad admin-only gestionada por `_toggleAdminTiles(screenId)`, llamada automáticamente desde `show()` al mostrar `finca-home` u `ops-home`.
+
+### Navegación de botón Atrás
+
+`state.deptParent` registra desde dónde se abrió `#dept`. `navBackDept()` lo usa para volver al screen correcto (siempre `ops-home` en la arquitectura actual). Esto evita hardcodear `nav('home')` en el back button del dept screen.
+
+---
+
+## Decisiones de diseño confirmadas
+
+Documentadas en detalle en `Docs/TDD.md` sección 9. Resumen:
+
+| # | Decisión | Resolución |
+|---|---|---|
+| D-001 | Stock insuficiente al cerrar lote de Biofábrica | Solo advertir, no bloquear |
+| D-002 | Upload de fotos a Google Drive | Via Cloudflare Worker (service account oculta) |
+| D-003 | Pedidos de cocina por semana | Múltiples permitidos (campo `label` opcional) |
+| D-004 | Inventario de contenedores del Vivero | Por tipo de contenedor, no por batch |
 
 ---
 

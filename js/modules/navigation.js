@@ -3,20 +3,103 @@ import { stopRec } from './audio.js';
 import { DEPTS } from '../data/departments.js';
 import { CAL_IDS, CAL_LABELS } from '../data/departments.js';
 
+// Top-level department tiles shown on the home gallery.
+// deptKeys: values in profile.departments that grant access to this tile.
+const DEPT_TILES = [
+  { id: 'finca',  label: 'Finca',       desc: 'Producción, Biofábrica y Vivero',           icon: '🌱', cls: 'finca', action: 'openFinca()',    status: 'active', deptKeys: ['produccion_alimentos','biofabrica','vivero'] },
+  { id: 'ops',    label: 'Operaciones', desc: 'Limpieza, Mantenimiento y Proveduría',       icon: '🏗️', cls: 'ops',   action: 'openOps()',      status: 'active', deptKeys: ['limpieza','mantenimiento','proveeduria'] },
+  { id: 'cocina', label: 'Cocina',      desc: 'Pedidos y gestión de cocina',                icon: '🍳', cls: 'cocina',action: null,             status: 'soon',   deptKeys: ['cocina'] },
+  { id: 'exp',    label: 'Experiencias',desc: 'Workshops, eventos y recorridos',            icon: '✨', cls: 'exp',   action: null,             status: 'soon',   deptKeys: ['experiencias'] },
+];
+
+function canSeeTile(tile, user) {
+  if (user?.profile?.role === 'admin') return true;
+  if (tile.id === 'rep') return false;
+  const depts = user?.profile?.departments || [];
+  return tile.deptKeys.some(k => depts.includes(k));
+}
+
+export function renderHome() {
+  const user = state.currentUser;
+  const name = user?.profile?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || '';
+
+  const greetEl = document.getElementById('home-greeting');
+  if (greetEl) greetEl.textContent = name ? `Bienvenido, ${name}` : 'Bienvenido';
+
+  const tiles = DEPT_TILES.filter(t => canSeeTile(t, user));
+  document.getElementById('dept-gallery').innerHTML = tiles.map(t => {
+    const isSoon     = t.status === 'soon';
+    const fullClass  = t.full ? ' full' : '';
+    const onclick    = !isSoon && t.action ? ` onclick="${t.action}"` : '';
+    const badgeLabel = t.status === 'active' ? 'Activo' : t.status === 'admin' ? 'Admin' : 'Próximamente';
+    return `<div class="dept-tile${isSoon ? ' soon' : ''}${fullClass}"${onclick}>
+      <div class="tile-icon ${t.cls}">${t.icon}</div>
+      <div class="tile-body">
+        <div class="tile-name">${t.label}</div>
+        <div class="tile-desc">${t.desc}</div>
+        <span class="tile-badge ${t.status === 'admin' ? 'admin' : t.status}">${badgeLabel}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function _toggleAdminTiles(screenId) {
+  const isAdmin = state.currentUser?.profile?.role === 'admin';
+  document.querySelectorAll(`#${screenId} .admin-only`).forEach(el => {
+    el.style.display = isAdmin ? '' : 'none';
+  });
+}
+
 export function show(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  if (id === 'home') renderHome();
+  if (id === 'finca-home' || id === 'ops-home') _toggleAdminTiles(id);
   window.scrollTo(0, 0);
 }
 
 export function nav(to) {
   stopRec();
-  if (to === 'home') show('home');
-  else if (to === 'dept') openDept(state.currentDept);
+  if (to === 'home')      show('home');
+  else if (to === 'dept') openDept(state.currentDept, state.deptParent);
+  else if (to === 'finca-home') show('finca-home');
+  else if (to === 'ops-home')   show('ops-home');
 }
 
-export function openDept(dept) {
+export function openFinca() {
+  show('finca-home');
+}
+
+export function openOps() {
+  show('ops-home');
+}
+
+export function openFincaModule(id) {
+  const labels = { produccion: 'Producción de Alimentos', biofabrica: 'Biofábrica', vivero: 'Vivero', reportes: 'Reportes de Finca' };
+  const label  = labels[id] || id;
+  document.getElementById('con-title').textContent = label;
+  document.getElementById('con-back').onclick = () => show('finca-home');
+  document.getElementById('conbody').innerHTML = `
+    <div class="cs">
+      <div class="csi">🚧</div>
+      <h3>${label}</h3>
+      <p>Este módulo está en construcción y estará disponible próximamente.</p>
+    </div>`;
+  show('con-screen');
+}
+
+export function navBackDept() {
+  stopRec();
+  show(state.deptParent || 'home');
+}
+
+export function openDeptFrom(dept, from) {
+  openDept(dept, from);
+}
+
+export function openDept(dept, from = 'ops-home') {
   state.currentDept = dept;
+  state.deptParent  = from;
   const d = DEPTS[dept];
   document.getElementById('dept-title').textContent = d.label;
   document.getElementById('rgrid').innerHTML = d.resources.map(r => `
@@ -60,7 +143,7 @@ export function openResource(id, title, type) {
   document.getElementById('con-title').textContent = title;
   document.getElementById('con-back').onclick = () => nav('dept');
   let html = '';
-  if (id === 'manual-limp')  html = renderManualLimp();
+  if (id === 'manual-limp')   html = renderManualLimp();
   else if (id === 'manual-prev') html = renderManualManto();
   else html = `<div class="cs"><div class="csi">📄</div><h3>${title}</h3><p>El contenido estará disponible aquí próximamente.</p></div>`;
   document.getElementById('conbody').innerHTML = html;

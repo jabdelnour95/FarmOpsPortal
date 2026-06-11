@@ -1,5 +1,5 @@
-import { doLogin, logout }                                from './modules/auth.js';
-import { show, nav, openDept, filterCards, openResource, openCalendar } from './modules/navigation.js';
+import { doLogin, logout, restoreSession }                        from './modules/auth.js';
+import { show, nav, openDept, openDeptFrom, openFinca, openOps, openFincaModule, navBackDept, filterCards, openResource, openCalendar } from './modules/navigation.js';
 import { openInventarios, openRopaCama, openPropsMenu, openPropsForm, adjQty, submitInventario } from './modules/inventory.js';
 import { openChecklistMenu, promptChecklist, closeModal, confirmChecklist, toggleCB, startChecklist, submitChecklist } from './modules/checklists.js';
 import { openForm, submitForm }                          from './modules/forms.js';
@@ -11,7 +11,7 @@ import { openReports, toggleAcc, viewReport }           from './modules/reports.
 // Expose to HTML event handlers (onclick attributes) and cross-module calls
 Object.assign(window, {
   doLogin, logout,
-  nav, openDept, filterCards, openResource,
+  nav, openDept, openDeptFrom, openFinca, openOps, openFincaModule, navBackDept, filterCards, openResource,
   openInventarios, openRopaCama, openPropsMenu, openPropsForm, adjQty, submitInventario,
   openChecklistMenu, promptChecklist, closeModal, confirmChecklist, toggleCB, startChecklist, submitChecklist,
   openForm, submitForm,
@@ -29,3 +29,6 @@ Object.assign(window, {
 
 // Wire up non-inline event listeners
 document.getElementById('lp').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+// Restore session if a valid token is stored locally
+restoreSession();

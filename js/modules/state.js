@@ -1,6 +1,9 @@
 export const state = {
   currentUser: null,
+  accessToken: null,
+  refreshToken: null,
   currentDept: null,
+  deptParent: 'ops-home',
   pendingChecklist: null,
   activeRec: null,
   checkedMap: {},
