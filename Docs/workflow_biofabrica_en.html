@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biofactory — Workflow | TIERRAMOR-OS</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #f5f2eb;
+            color: #2c2c2c;
+            padding: 32px 24px;
+        }
+
+        .page { max-width: 1000px; margin: 0 auto; }
+
+        .back-link {
+            display: inline-block;
+            font-size: 12px;
+            color: #9a8c6e;
+            text-decoration: none;
+            margin-bottom: 20px;
+            letter-spacing: 0.02em;
+        }
+
+        .back-link:hover { color: #7a5c2e; }
+
+        .system-tag {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: #9a8c6e;
+            margin-bottom: 8px;
+        }
+
+        h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+
+        .meta { font-size: 13px; color: #9a8c6e; margin-bottom: 28px; }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 28px;
+            padding: 16px 20px;
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid #ddd5be;
+            margin-bottom: 24px;
+        }
+
+        .legend-label {
+            width: 100%;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #9a8c6e;
+            margin-bottom: 2px;
+        }
+
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+
+        .swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+
+        .diagram-wrap {
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid #ddd5be;
+            padding: 32px 16px;
+            overflow-x: auto;
+        }
+
+        .mermaid { display: flex; justify-content: center; }
+
+        .notes {
+            margin-top: 24px;
+            padding: 16px 20px;
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid #ddd5be;
+        }
+
+        .notes-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #9a8c6e;
+            margin-bottom: 10px;
+        }
+
+        .notes ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+
+        .notes li {
+            font-size: 13px;
+            line-height: 1.5;
+            padding-left: 14px;
+            position: relative;
+        }
+
+        .notes li::before { content: "—"; position: absolute; left: 0; color: #9a8c6e; }
+
+        footer { margin-top: 20px; text-align: center; font-size: 11px; color: #bbb; }
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <a href="../index.html" class="back-link">← All Workflows</a>
+
+    <div class="system-tag">TIERRAMOR-OS · 03_AREAS / biofactory</div>
+    <h1>Biofactory — Workflow</h1>
+    <p class="meta">Updated: 2026-05-29 · Area lead: Kennedy Corea · Supervisor: Tomás Guzmán</p>
+
+    <div class="legend">
+        <div class="legend-label">Legend</div>
+        <div class="legend-item">
+            <div class="swatch" style="background:#7B9CDA;"></div>
+            AI + Human — AI drafts or aggregates data; human reviews and confirms
+        </div>
+        <div class="legend-item">
+            <div class="swatch" style="background:#F4A261;"></div>
+            Human only — requires physical presence or direct human judgment
+        </div>
+        <div class="legend-item">
+            <div class="swatch" style="background:#52B788;"></div>
+            AI Agent — executes automatically without human intervention
+        </div>
+        <div class="legend-item">
+            <div class="swatch" style="background:#E9C46A; border:1px solid #c9a84c;"></div>
+            Data capture — must be logged in the portal at this point
+        </div>
+        <div class="legend-item">
+            <div class="swatch" style="background:#d0cfc8; border:1px solid #aaa;"></div>
+            External entity — another department or organization involved
+        </div>
+    </div>
+
+    <div class="diagram-wrap">
+        <div class="mermaid">
+flowchart TD
+    %% ── External entities ──────────────────────────────────────
+    KITCHEN(["Kitchen"])
+    REST(["External Restaurants"])
+    SUPPLIERS(["Suppliers"])
+    FOOD_PROD(["Food Production"])
+    NURSERY(["Nursery · Dani"])
+    LANDSCAPING(["Landscaping · Alejandro"])
+    EXT_CLIENTS(["External Clients"])
+    ADMIN(["Administration"])
+
+    %% ── Phase 1: Inputs ────────────────────────────────────────
+    subgraph ENT[" Phase 1 · Raw Material Inputs — per event "]
+        A["Raw Material Receipt\nKennedy · Per event"]
+        DC_A[/"Data: Batch ID, raw material · qty · unit\ntype (purchased or farm input) · supplier · cost · photo · staff member"/]
+        INV_MP["Raw Materials Inventory\nSystem · Updated in real time · With low-stock alerts"]
+    end
+
+    %% ── Phase 2: Production cycle ──────────────────────────────
+    subgraph PROD[" Phase 2 · Production Cycle — per batch "]
+        B["Order Review and Production Planning\nKennedy · Upon weekly order or low-stock alert"]
+        DC_B[/"Data: pending orders · current stock · product to produce · target quantity"/]
+        C["Production Batch Opening\nKennedy · Per batch"]
+        DC_C[/"Data: new Batch ID · product to produce · raw materials consumed+qty\nstart date · estimated end date · responsible staff"/]
+        D["Production Process Execution\nKennedy · Duration varies by product"]
+        E["Batch Closure\nKennedy · When production is complete"]
+        DC_E[/"Data: Batch ID · actual end date · finished product qty obtained · notes"/]
+        INV_ACT["Automatic Inventory Update\nSystem · Debits raw materials · Credits finished product"]
+    end
+
+    %% ── Phase 3: Outputs ───────────────────────────────────────
+    subgraph SAL[" Phase 3 · Finished Product Outputs — per event "]
+        INV_PT["Finished Product Inventory\nSystem · Updated in real time"]
+        F["Dispatch Registration\nKennedy · Per sale or delivery"]
+        DC_F[/"Data: product · qty · dispatch type\n(internal or external) · price · client or destination · staff member"/]
+        INV_AUTO["Automatic Inventory Debit\nSystem · Triggered on dispatch registration"]
+    end
+
+    %% ── Main flow ───────────────────────────────────────────────
+    A --> DC_A
+    DC_A --> INV_MP
+    INV_MP --> B
+    B --> DC_B
+    DC_B --> C
+    C --> DC_C
+    DC_C --> D
+    D --> E
+    E --> DC_E
+    DC_E --> INV_ACT
+    INV_ACT --> INV_PT
+    INV_PT --> F
+    F --> DC_F
+    DC_F --> INV_AUTO
+
+    %% ── Cross-department connections ────────────────────────────
+    KITCHEN -. "delivers organic waste" .-> A
+    REST -. "delivers organic waste\n(under negotiation)" .-> A
+    SUPPLIERS -. "delivers purchased inputs" .-> A
+    FOOD_PROD -. "weekly inputs order\nactivates production cycle" .-> B
+    NURSERY -. "inputs order\nactivates production cycle" .-> B
+    LANDSCAPING -. "inputs order\nactivates production cycle" .-> B
+    EXT_CLIENTS -. "purchase order\nactivates production cycle" .-> B
+    INV_MP -. "low-stock alert\nactivates planning" .-> B
+    DC_F -. "external sale invoice" .-> ADMIN
+
+    %% ── Styles ──────────────────────────────────────────────────
+    classDef aiHuman  fill:#7B9CDA,stroke:#5a7dba,color:#fff
+    classDef human    fill:#F4A261,stroke:#d4844a,color:#fff
+    classDef aiAgent  fill:#52B788,stroke:#3d9a6d,color:#fff
+    classDef data     fill:#E9C46A,stroke:#c9a84c,color:#4a3800
+    classDef external fill:#d0cfc8,stroke:#aaa,color:#444
+
+    class B aiHuman
+    class A,C,D,E,F human
+    class INV_MP,INV_ACT,INV_PT,INV_AUTO aiAgent
+    class DC_A,DC_B,DC_C,DC_E,DC_F data
+    class KITCHEN,REST,SUPPLIERS,FOOD_PROD,NURSERY,LANDSCAPING,EXT_CLIENTS,ADMIN external
+        </div>
+    </div>
+
+    <div class="notes">
+        <div class="notes-title">Design notes</div>
+        <ul>
+            <li><strong>Dispatch and automatic inventory:</strong> Every dispatch — whether to Food Production, Nursery, Landscaping, or an External Client — is registered by Kennedy in the portal. The moment the dispatch is logged, the system automatically debits the Finished Product Inventory. No manual stock adjustment needed.</li>
+            <li><strong>Batch ID:</strong> Each production batch generates a unique identifier for traceability — which raw materials were consumed, start and end dates, actual vs. estimated yield, and who executed it.</li>
+            <li><strong>Production triggers:</strong> The production cycle can be activated by any of the four clients: Food Production (Tomás, weekly order on Thu/Fri), Nursery (Dani), Landscaping (Alejandro), or External Clients. It can also be triggered automatically by low-stock alerts from the Raw Materials Inventory.</li>
+            <li><strong>Calculated inventory:</strong> Inventories are never entered manually — they are calculated in real time by adding entries and subtracting batch consumptions and product dispatches. The system shows alerts when any item falls below the configured minimum stock.</li>
+            <li><strong>Continuous cycle:</strong> After closing a batch, Kennedy reviews inventory and pending orders and opens new batches as needed. The diagram represents one typical production cycle — in practice this loop runs continuously.</li>
+        </ul>
+    </div>
+
+    <footer>TIERRAMOR-OS · Generated with Claude Code · 2026-05-29</footer>
+
+</div>
+
+<script>
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: 'base',
+        themeVariables: {
+            primaryColor: '#7B9CDA',
+            primaryTextColor: '#ffffff',
+            primaryBorderColor: '#5a7dba',
+            lineColor: '#888888',
+            background: '#ffffff',
+            fontFamily: "'Segoe UI', system-ui, sans-serif",
+            fontSize: '13px'
+        },
+        flowchart: { curve: 'basis', padding: 20, nodeSpacing: 50, rankSpacing: 45 }
+    });
+</script>
+</body>
+</html>

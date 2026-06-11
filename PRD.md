@@ -1,9 +1,11 @@
 # PRD: Portal Operativo de Tierramor
 
-**Versión:** 1.0
-**Fecha:** 23 de mayo de 2026
+**Versión:** 1.2
+**Fecha:** 11 de junio de 2026
 **Autor:** Javier Abdelnour (Farm Manager / Product Owner)
 **Estado:** Borrador para revisión
+**Cambios v1.1:** Alineación con workflows documentados (Docs/). Vivero ampliado con fases de preparación de sustrato, llenado de contenedores, germinación/establecimiento y conteo de plantas vivas. Mecanismo de mortalidad corregido (conteo físico → cálculo automático). Cotizador actualizado con revisión de precios por cliente y selección de lote por línea. Biofábrica: tipos de materia prima y factura de venta externa. Producción de Alimentos: Lot ID explícito en siembra.
+**Cambios v1.2:** Scope reducido al portal de la finca (Producción de Alimentos, Biofábrica, Vivero). Limpieza, Mantenimiento y Proveduría excluidos — en desarrollo en portal separado por Nicolás Salas (Ops Manager). Integración de ambos portales diferida a Fase 2.
 
 ## Descripción general del producto
 
@@ -39,6 +41,7 @@ La Fase 1 cubre seis departamentos operativos: Limpieza, Mantenimiento, Provedur
 
 ### Fuera del alcance (non-goals)
 
+- **Portal de Operaciones (Nicolás Salas):** Los módulos de Limpieza, Mantenimiento y Proveduría no forman parte de este portal. Nicolás Salas (Operations Manager) está desarrollando un portal separado para esos departamentos con su propio stack. La integración de ambos portales es un objetivo de Fase 2.
 - Los departamentos de Cocina, Experiences, F&B, Marketing y Finanzas no se desarrollan en Fase 1 (se tratan en Fase 2 con discovery propio).
 - El departamento de Gallinas está diferido para la siguiente iteración del PRD.
 - El sistema no maneja identificadores individuales de plantas en Vivero (se trabaja a nivel de lote).
@@ -70,11 +73,11 @@ El portal define cuatro tipos de usuario con distintos niveles de acceso y conte
 
 ### Persona 3 — Nicolás (Operations Manager)
 
-**Perfil:** Gerente de operaciones. Supervisa Limpieza, Mantenimiento, Proveduría y Transportes. Fue quien construyó el prototipo original del sistema. Alto nivel técnico. Accede desde computadora y celular.
+**Perfil:** Gerente de operaciones. Supervisa Limpieza, Mantenimiento, Proveduría y Transportes. Está desarrollando un portal separado para sus departamentos con su propio stack. Alto nivel técnico.
 
-**Necesidades:** Visibilidad total de los departamentos bajo su responsabilidad. Poder revisar checklists, reportes y solicitudes pendientes. Configurar catálogos y usuarios dentro de sus áreas.
+**Relación con este portal:** Nicolás no es un usuario de este portal en Fase 1. Su portal (Ops Portal) opera de forma independiente. En Fase 2 se diseñará la integración entre ambos sistemas.
 
-**Acceso:** Administrador de Limpieza, Mantenimiento y Proveduría. Sin acceso de escritura en Producción de Alimentos, Biofábrica o Vivero (solo lectura si se requiere).
+**Acceso en Fase 1:** Sin acceso. En Fase 2 se definirá un rol de lectura para visibilidad cruzada entre portales.
 
 ### Persona 4 — Javier Abdelnour (Farm Manager / Admin)
 
@@ -86,12 +89,13 @@ El portal define cuatro tipos de usuario con distintos niveles de acceso y conte
 
 ### Control de acceso basado en roles
 
-| Rol | Limpieza | Mantenimiento | Proveduría | Prod. Alimentos | Biofábrica | Vivero | Configuración |
-|---|---|---|---|---|---|---|---|
-| Colaborador de campo | Solo su dpto. | Solo su dpto. | Solo su dpto. | Solo su dpto. | Solo su dpto. | Solo su dpto. | Sin acceso |
-| Equipo de Cocina | Sin acceso | Sin acceso | Sin acceso | Lectura Disponibilidad + Pedidos | Sin acceso | Sin acceso | Sin acceso |
-| Nicolás (Ops Manager) | Admin | Admin | Admin | Lectura | Lectura | Lectura | Admin de sus dptos. |
-| Javier (Farm Manager) | Admin | Admin | Admin | Admin | Admin | Admin | Superadmin |
+| Rol | Prod. Alimentos | Biofábrica | Vivero | Configuración |
+|---|---|---|---|---|
+| Colaborador de campo | Solo su dpto. | Solo su dpto. | Solo su dpto. | Sin acceso |
+| Equipo de Cocina | Lectura Disponibilidad + Pedidos | Sin acceso | Sin acceso | Sin acceso |
+| Javier (Farm Manager) | Admin | Admin | Admin | Superadmin |
+
+> Nota: Nicolás Salas (Ops Manager) no tiene acceso a este portal en Fase 1. Su portal separado (Limpieza, Mantenimiento, Proveduría) opera de forma independiente.
 
 ## Requerimientos funcionales
 
@@ -124,110 +128,22 @@ Todos los requerimientos funcionales se organizan por departamento. La prioridad
 | CAT-007 | Gestión de catálogo de especies de Vivero (nombre, tipo, tiempo estimado de crecimiento). | P1 |
 | CAT-008 | Gestión de categorías de precio de Vivero (especie + tamaño/edad → precio unitario). | P1 |
 | CAT-009 | Gestión de catálogo de materias primas de Vivero (nombre, unidad, stock mínimo, tipo). | P1 |
-| CAT-010 | Gestión de zonas de Limpieza (10 zonas con secciones e ítems de inspección). | P1 |
-| CAT-011 | Gestión de clusters de Mantenimiento (6 clusters, ~40 áreas). | P1 |
+| CAT-010 | Gestión de tipos de sustrato de Vivero (código de tipo permanente, nombre, componentes de la fórmula y proporciones). | P1 |
+| CAT-011 | Gestión de tipos de contenedores de Vivero (bolsas/macetas: tipo, tamaño, unidad). | P1 |
 
-### 1. Limpieza (Housekeeping)
+### 1. Portal de Operaciones — Fuera de scope (integración Fase 2)
 
-#### 1.1 Reporte de labores
+Los módulos de **Limpieza**, **Mantenimiento** y **Proveduría y Transportes** no forman parte de este portal. Nicolás Salas (Operations Manager) está construyendo un Ops Portal independiente para esos departamentos con su propio stack. Sus requerimientos funcionales quedan documentados en ese proyecto separado.
 
-| ID | Requerimiento | Prioridad |
-|---|---|---|
-| LIM-001 | Crear reporte de labores diario con campos: fecha, turno (AM/PM), rol del colaborador, colaborador, áreas trabajadas (selección múltiple), duración, observaciones, foto opcional. | P1 |
-| LIM-002 | Campo de dictado por voz en el campo "observaciones". | P1 |
-| LIM-003 | Registro de dos campos de autoría: "quién hizo el trabajo" y "quién ingresó el dato". | P1 |
-| LIM-004 | Listar, filtrar y buscar reportes de labores por fecha, turno, colaborador y área. | P1 |
-| LIM-005 | Ver detalle de un reporte de labores. | P1 |
+La integración entre el Ops Portal y este Farm Portal es un objetivo de Fase 2. Los puntos de integración a resolver en esa etapa incluyen: autenticación unificada, visibilidad cruzada para el Farm Manager y consistencia del catálogo de colaboradores entre ambos sistemas.
 
-#### 1.2 Limpieza de áreas
+### 2. Producción de alimentos
 
-| ID | Requerimiento | Prioridad |
-|---|---|---|
-| LIM-006 | Crear registro de limpieza de área con campos: fecha, turno, área, colaborador, duración, condición final, observaciones, foto opcional. | P1 |
-| LIM-007 | Campo de dictado por voz en "observaciones". | P1 |
-| LIM-008 | Registro de autoría dual (ejecutor + ingresador). | P1 |
-| LIM-009 | Listar y filtrar registros por fecha, área y colaborador. | P1 |
-
-#### 1.3 Checklists por área
-
-| ID | Requerimiento | Prioridad |
-|---|---|---|
-| LIM-010 | Ver las 10 zonas de la finca con sus secciones e ítems de inspección configurados en el catálogo. | P1 |
-| LIM-011 | Iniciar una sesión de checklist para una zona: marcar ítems como completados, agregar nota por ítem. | P1 |
-| LIM-012 | Ver progreso del checklist por zona (porcentaje completado). | P1 |
-| LIM-013 | Guardar y retomar un checklist en progreso. | P1 |
-| LIM-014 | Historial de checklists completados por zona y fecha. | P2 |
-
-#### 1.4 Inventario de ropa de cama
-
-| ID | Requerimiento | Prioridad |
-|---|---|---|
-| LIM-015 | Ingresar conteo de inventario de 21 ítems de ropa de cama con cantidad por ítem. | P1 |
-| LIM-016 | Ver historial de conteos anteriores. | P1 |
-| LIM-017 | El formulario muestra los 21 ítems fijos configurados en el sistema. | P1 |
-
-#### 1.5 Inventario de props de Wellness
-
-| ID | Requerimiento | Prioridad |
-|---|---|---|
-| LIM-018 | Ingresar conteo de inventario de props de Wellness para Maloca y Movement Studio, por ítem y cantidad. | P1 |
-| LIM-019 | Ver historial de conteos anteriores. | P1 |
-
-### 2. Mantenimiento
-
-#### 2.1 Reporte de trabajo
-
-| ID | Requerimiento | Prioridad |
-|---|---|---|
-| MAN-001 | Crear reporte de trabajo con campos: fecha, cluster, área específica, colaborador, tipo de trabajo, descripción, duración, materiales usados, fotos opcionales, observaciones. | P1 |
-| MAN-002 | Campo de dictado por voz en "descripción" y "observaciones". | P1 |
-| MAN-003 | Registro de autoría dual (ejecutor + ingresador). | P1 |
-| MAN-004 | Listar, filtrar y buscar reportes por fecha, cluster, área y colaborador. | P1 |
-| MAN-005 | Ver detalle de un reporte de trabajo. | P1 |
-
-#### 2.2 Reporte de avería
-
-| ID | Requerimiento | Prioridad |
-|---|---|---|
-| MAN-006 | Crear reporte de avería (emergencia) con campos: fecha y hora, área, descripción del problema, colaborador que reporta, nivel de urgencia, fotos, estado (reportada/en atención/resuelta). | P1 |
-| MAN-007 | Actualizar el estado de una avería desde "reportada" hasta "resuelta". | P1 |
-| MAN-008 | Campo de dictado por voz en "descripción del problema". | P1 |
-| MAN-009 | Registro de autoría dual. | P1 |
-| MAN-010 | Listar averías activas (no resueltas) destacadas en la vista de Mantenimiento. | P1 |
-
-#### 2.3 Solicitud de materiales
-
-| ID | Requerimiento | Prioridad |
-|---|---|---|
-| MAN-011 | Crear solicitud de materiales con campos: fecha, área, colaborador solicitante, lista de materiales (descripción + cantidad + unidad), justificación, estado (pendiente/aprobada/rechazada/entregada). | P1 |
-| MAN-012 | Actualizar el estado de una solicitud. | P1 |
-| MAN-013 | Listar solicitudes pendientes de aprobación. | P1 |
-| MAN-014 | Registro de autoría dual. | P1 |
-
-#### 2.4 Checklists por cluster
-
-| ID | Requerimiento | Prioridad |
-|---|---|---|
-| MAN-015 | Ver los 6 clusters con sus áreas e ítems de inspección configurados en el catálogo. | P1 |
-| MAN-016 | Iniciar sesión de checklist por cluster: marcar ítems, agregar notas por ítem, subir foto opcional. | P1 |
-| MAN-017 | Ver progreso del checklist por cluster. | P1 |
-| MAN-018 | Guardar y retomar checklist en progreso. | P1 |
-| MAN-019 | Historial de checklists por cluster y fecha. | P2 |
-
-### 3. Proveduría y transportes
-
-| ID | Requerimiento | Prioridad |
-|---|---|---|
-| PROV-001 | Mostrar embed del Google Calendar de transportes dentro del portal, para consulta del equipo. | P1 |
-| PROV-002 | Los flujos adicionales de Proveduría (solicitudes de compra, registro de proveedores, etc.) se definen en discovery de Fase 2. | P3 |
-
-### 4. Producción de alimentos
-
-#### 4.1 Datos de referencia (gestionados en catálogos)
+#### 2.1 Datos de referencia (gestionados en catálogos)
 
 Los flujos de este departamento dependen de que los catálogos de áreas productivas, camas y cultivos estén correctamente configurados por el administrador.
 
-#### 4.2 Plan de siembra
+#### 2.2 Plan de siembra
 
 | ID | Requerimiento | Prioridad |
 |---|---|---|
@@ -235,7 +151,7 @@ Los flujos de este departamento dependen de que los catálogos de áreas product
 | PROD-002 | Visualizar el plan de siembra en vista de tabla (camas vs. semanas). | P1 |
 | PROD-003 | El plan migra datos desde Google Sheets existente (proceso manual de carga inicial). | P1 |
 
-#### 4.3 Pedido de material de propagación
+#### 2.3 Pedido de material de propagación
 
 | ID | Requerimiento | Prioridad |
 |---|---|---|
@@ -243,7 +159,7 @@ Los flujos de este departamento dependen de que los catálogos de áreas product
 | PROD-005 | Listar pedidos por semana. | P1 |
 | PROD-006 | Registro de autoría dual. | P1 |
 
-#### 4.4 Preparación de camas
+#### 2.4 Preparación de camas
 
 | ID | Requerimiento | Prioridad |
 |---|---|---|
@@ -252,15 +168,15 @@ Los flujos de este departamento dependen de que los catálogos de áreas product
 | PROD-009 | Registro de autoría dual. | P1 |
 | PROD-010 | Listar registros de preparación por cama y fecha. | P1 |
 
-#### 4.5 Siembra
+#### 2.5 Siembra
 
 | ID | Requerimiento | Prioridad |
 |---|---|---|
-| PROD-011 | Crear registro de siembra por cama con campos: fecha, cama, cultivo, cantidad/densidad, colaborador, observaciones, foto opcional. | P1 |
+| PROD-011 | Crear registro de siembra por cama con campos: fecha, cama, cultivo, cantidad/densidad, colaborador, observaciones, foto opcional. Al guardar, el sistema genera un **Lot ID único** que identifica este evento de siembra y sirve como referencia en todos los registros posteriores del cultivo (aplicación de insumos, pronóstico de disponibilidad, cosecha). | P1 |
 | PROD-012 | Registro de autoría dual. | P1 |
-| PROD-013 | Listar registros de siembra por cama, cultivo y fecha. | P1 |
+| PROD-013 | Listar registros de siembra por cama, cultivo, fecha y Lot ID. | P1 |
 
-#### 4.6 Aplicación de insumos
+#### 2.6 Aplicación de insumos
 
 | ID | Requerimiento | Prioridad |
 |---|---|---|
@@ -269,7 +185,7 @@ Los flujos de este departamento dependen de que los catálogos de áreas product
 | PROD-016 | Registro de autoría dual. | P1 |
 | PROD-017 | Listar aplicaciones por área y fecha. | P1 |
 
-#### 4.7 Mantenimiento de área
+#### 2.7 Mantenimiento de área
 
 | ID | Requerimiento | Prioridad |
 |---|---|---|
@@ -277,7 +193,7 @@ Los flujos de este departamento dependen de que los catálogos de áreas product
 | PROD-019 | Registro de autoría dual. | P1 |
 | PROD-020 | Listar registros por área y fecha. | P1 |
 
-#### 4.8 Disponibilidad semanal de cosecha
+#### 2.8 Disponibilidad semanal de cosecha
 
 | ID | Requerimiento | Prioridad |
 |---|---|---|
@@ -286,7 +202,7 @@ Los flujos de este departamento dependen de que los catálogos de áreas product
 | PROD-023 | Solo puede haber un reporte de disponibilidad activo por semana. | P1 |
 | PROD-024 | Migración desde AppSheet (carga inicial manual). | P1 |
 
-#### 4.9 Pedido de cocina
+#### 2.9 Pedido de cocina
 
 | ID | Requerimiento | Prioridad |
 |---|---|---|
@@ -295,7 +211,7 @@ Los flujos de este departamento dependen de que los catálogos de áreas product
 | PROD-027 | El equipo de Producción puede ver el pedido de Cocina y confirmarlo o ajustarlo. | P1 |
 | PROD-028 | Migración desde AppSheet (carga inicial manual). | P1 |
 
-#### 4.10 Cosecha
+#### 2.10 Cosecha
 
 | ID | Requerimiento | Prioridad |
 |---|---|---|
@@ -304,7 +220,7 @@ Los flujos de este departamento dependen de que los catálogos de áreas product
 | PROD-031 | Listar cosechas por cultivo, área y semana. | P1 |
 | PROD-032 | Migración desde AppSheet (carga inicial manual). | P1 |
 
-#### 4.11 Factura interna
+#### 2.11 Factura interna
 
 | ID | Requerimiento | Prioridad |
 |---|---|---|
@@ -313,18 +229,18 @@ Los flujos de este departamento dependen de que los catálogos de áreas product
 | PROD-035 | Listar facturas internas por período y cultivo. | P1 |
 | PROD-036 | Exportar listado de facturas internas a CSV. | P2 |
 
-### 5. Biofábrica
+### 3. Biofábrica
 
-#### 5.1 Entradas de materias primas
+#### 3.1 Entradas de materias primas
 
 | ID | Requerimiento | Prioridad |
 |---|---|---|
-| BIO-001 | Crear entrada de materia prima con campos: fecha, materia prima (del catálogo), cantidad, unidad, tipo (comprada o insumo de finca), proveedor si aplica, costo si es comprada, colaborador, observaciones, foto de recibo opcional. | P1 |
+| BIO-001 | Crear entrada de materia prima con campos: fecha, materia prima (del catálogo), cantidad, unidad, tipo (comprada / insumo de finca / residuo orgánico — ej. de Cocina u otros departamentos), proveedor si aplica, costo si es comprada, colaborador, observaciones, foto de recibo opcional. | P1 |
 | BIO-002 | La entrada actualiza automáticamente el stock actual de la materia prima. | P1 |
 | BIO-003 | Registro de autoría dual. | P1 |
 | BIO-004 | Listar entradas por materia prima y período. | P1 |
 
-#### 5.2 Lotes de producción
+#### 3.2 Lotes de producción
 
 | ID | Requerimiento | Prioridad |
 |---|---|---|
@@ -334,17 +250,17 @@ Los flujos de este departamento dependen de que los catálogos de áreas product
 | BIO-008 | Registro de autoría dual. | P1 |
 | BIO-009 | Listar lotes por producto terminado, estado (en proceso/cerrado) y fecha. | P1 |
 
-#### 5.3 Salidas de producto terminado
+#### 3.3 Salidas de producto terminado
 
 | ID | Requerimiento | Prioridad |
 |---|---|---|
-| BIO-010 | Crear salida de producto terminado con campos: fecha, producto, cantidad, tipo de salida (uso interno por departamento/área, o venta externa por cliente), precio unitario, valor total. | P1 |
+| BIO-010 | Crear salida de producto terminado con campos: fecha, producto, cantidad, tipo de salida (uso interno por departamento/área — Producción de Alimentos, Vivero, Paisajismo u otros; o venta externa por cliente), precio unitario, valor total. | P1 |
 | BIO-011 | La salida descuenta automáticamente el inventario de producto terminado. | P1 |
 | BIO-012 | Las salidas originadas desde Producción de Alimentos (aplicación de insumos, preparación de camas) se registran automáticamente — no requieren entrada manual doble. | P1 |
 | BIO-013 | Registro de autoría dual. | P1 |
 | BIO-014 | Listar salidas por producto, tipo y período. | P1 |
 
-#### 5.4 Inventarios calculados
+#### 3.4 Inventarios calculados
 
 | ID | Requerimiento | Prioridad |
 |---|---|---|
@@ -352,64 +268,104 @@ Los flujos de este departamento dependen de que los catálogos de áreas product
 | BIO-016 | Alerta visual cuando el stock de una materia prima cae por debajo del mínimo configurado en el catálogo. | P1 |
 | BIO-017 | Vista de inventario actual de productos terminados: stock calculado en tiempo real (lotes cerrados menos salidas). | P1 |
 | BIO-018 | Historial de movimientos por materia prima y por producto terminado. | P1 |
+| BIO-019 | Al registrar una salida de tipo venta externa, el sistema genera automáticamente una factura externa: producto, cantidad, precio unitario, valor total, cliente. | P1 |
+| BIO-020 | Listar facturas externas de Biofábrica por período y cliente. | P1 |
 
-### 6. Vivero
+### 4. Vivero
 
-#### 6.1 Entradas de materias primas
-
-| ID | Requerimiento | Prioridad |
-|---|---|---|
-| VIV-001 | Crear entrada de materia prima de Vivero con campos: fecha, materia prima (del catálogo de Vivero), cantidad, unidad, tipo (comprada/insumo de finca), costo si es comprada, colaborador, observaciones. | P1 |
-| VIV-002 | La entrada actualiza el stock de materias primas de Vivero. | P1 |
-| VIV-003 | Registro de autoría dual. | P1 |
-
-#### 6.2 Creación de lote
+#### 4.1 Entradas de materias primas
 
 | ID | Requerimiento | Prioridad |
 |---|---|---|
-| VIV-004 | Crear lote de plantas con campos: especie (del catálogo), origen (siembra propia o adquisición mayorista), fecha de inicio, cantidad inicial, responsable, notas. | P1 |
-| VIV-005 | Los lotes son la unidad de tracking — no se manejan IDs individuales por planta. | P1 |
-| VIV-006 | Listar lotes activos por especie y estado. | P1 |
+| VIV-001 | Crear entrada de materia prima de Vivero con campos: fecha, materia prima (del catálogo de Vivero), cantidad, unidad, tipo (comprada / insumo de finca / campo — ej. plantas recolectadas en scouting), costo si es comprada, colaborador, observaciones. | P1 |
+| VIV-002 | Al guardar la entrada, el sistema asigna un **ID de grupo único** al lote de material recibido, para mantener trazabilidad desde la recepción hasta los batches de sustrato y lotes de plantas que lo consuman. | P1 |
+| VIV-003 | La entrada actualiza el stock de materias primas de Vivero. | P1 |
+| VIV-004 | Registro de autoría dual. | P1 |
 
-#### 6.3 Mantenimiento de lote
-
-| ID | Requerimiento | Prioridad |
-|---|---|---|
-| VIV-007 | Crear registro de mantenimiento de lote con campos: fecha, lote, tipo de mantenimiento (riego, abonado, repotting, poda, bioinsumos, retiro de mortalidad), colaborador, cantidad si aplica (ej. litros aplicados, plantas retiradas), observaciones, foto opcional. | P1 |
-| VIV-008 | La aplicación de bioinsumos de Biofábrica en mantenimiento de lote dispara una salida de inventario en Biofábrica. | P1 |
-| VIV-009 | El retiro de mortalidad actualiza la cantidad viva en el lote. | P1 |
-| VIV-010 | Registro de autoría dual. | P1 |
-| VIV-011 | Listar registros de mantenimiento por lote y fecha. | P1 |
-
-#### 6.4 Graduación a "listo para venta"
+#### 4.2 Preparación de sustrato
 
 | ID | Requerimiento | Prioridad |
 |---|---|---|
-| VIV-012 | Graduar un lote (o una parte de él): asignar categoría de precio, registrar cantidad lista, fecha. | P1 |
-| VIV-013 | Las plantas graduadas entran al stock disponible para ventas e inventario. | P1 |
-| VIV-014 | Un lote puede graduarse parcialmente en varias fechas. | P1 |
+| VIV-005 | Crear batch de sustrato con campos: tipo de sustrato (del catálogo CAT-012, con código de tipo permanente), componentes utilizados (materia prima + ID de grupo + cantidad + unidad, múltiples líneas), cantidad de sustrato producida, fecha, colaborador, observaciones. | P1 |
+| VIV-006 | Cada batch de sustrato producido recibe un **ID de batch único** generado automáticamente, que referencia el tipo de sustrato y los materiales consumidos. | P1 |
+| VIV-007 | Al guardar el batch, los componentes utilizados se descuentan automáticamente del inventario de materias primas de Vivero. | P1 |
+| VIV-008 | Vista de inventario actual de sustratos: tipo de sustrato, código, stock total disponible (suma de batches no consumidos). | P1 |
 
-#### 6.5 Salidas de lote
-
-| ID | Requerimiento | Prioridad |
-|---|---|---|
-| VIV-015 | Crear salida de plantas con campos: fecha, lote, cantidad, tipo de salida (venta externa o uso interno/siembra en Tierramor), precio unitario si es venta, valor total si es venta, destino. | P1 |
-| VIV-016 | La salida actualiza el stock del lote. | P1 |
-| VIV-017 | Las salidas para uso interno quedan trazadas hacia Producción de Alimentos si el destino es una siembra. | P2 |
-| VIV-018 | Registro de autoría dual. | P1 |
-| VIV-019 | Listar salidas por especie, tipo y período. | P1 |
-
-#### 6.6 Cotizador
+#### 4.3 Llenado de bolsas/macetas
 
 | ID | Requerimiento | Prioridad |
 |---|---|---|
-| VIV-020 | Crear una cotización: agregar líneas de ítem (especie + categoría de precio + cantidad), información del cliente (nombre, email, teléfono), notas adicionales, fecha de validez. | P1 |
-| VIV-021 | El sistema calcula el total de la cotización automáticamente según las categorías de precio del catálogo. | P1 |
-| VIV-022 | Generar una vista imprimible / PDF de la cotización con formato profesional. | P1 |
-| VIV-023 | Registrar el estado de la cotización: pendiente, aceptada, rechazada. | P1 |
-| VIV-024 | Listar cotizaciones por estado, cliente y período. | P1 |
-| VIV-025 | Al aceptar una cotización, crear automáticamente la salida de inventario correspondiente (venta externa). | P2 |
-| VIV-026 | Los clientes externos no tienen acceso al portal — la cotización se genera internamente y se comparte como PDF o enlace de solo lectura. | P1 |
+| VIV-009 | Crear registro de llenado de contenedores con campos: tipo de contenedor (del catálogo CAT-013), tamaño, sustrato utilizado (batch ID + cantidad), cantidad de contenedores llenados, fecha, colaborador, observaciones. | P1 |
+| VIV-010 | Al guardar el registro, el sustrato usado se descuenta del inventario de sustratos y la cantidad de contenedores listos se suma al inventario de contenedores disponibles. | P1 |
+
+#### 4.4 Creación de lote
+
+| ID | Requerimiento | Prioridad |
+|---|---|---|
+| VIV-011 | Crear lote de plantas con campos: especie (del catálogo), **origen** (siembra propia / esquejes / adquisición mayorista / repoting desde Lote X), fecha de inicio, cantidad inicial, contenedores asignados (del inventario disponible), responsable, notas. | P1 |
+| VIV-012 | El origen del lote determina el flujo siguiente: lotes de **semillas o esquejes** pasan por la fase de germinación/establecimiento (sección 6.5); lotes de **adquisición mayorista o repoting** van directamente a mantenimiento (sección 6.6). | P1 |
+| VIV-013 | Los lotes son la unidad de seguimiento — no se manejan IDs individuales por planta. | P1 |
+| VIV-014 | Listar lotes activos por especie, origen y estado. | P1 |
+
+#### 4.5 Germinación y establecimiento (condicional — solo lotes de semillas o esquejes)
+
+| ID | Requerimiento | Prioridad |
+|---|---|---|
+| VIV-015 | Crear registros de seguimiento de germinación durante el proceso: Lot ID, fecha, observaciones, tasa estimada de prendimiento, foto opcional. Pueden registrarse múltiples eventos por lote. | P1 |
+| VIV-016 | Crear registro de **conteo de establecimiento** (un evento único que cierra esta fase): Lot ID, cantidad de plantas vivas confirmadas, cantidad fallida, contenedores a devolver, sustrato a devolver, fecha, colaborador. | P1 |
+| VIV-017 | Al guardar el conteo de establecimiento, el sistema acredita automáticamente al inventario de contenedores y de sustratos los materiales de los contenedores fallidos. | P1 |
+| VIV-018 | Tras el conteo de establecimiento, la cantidad viva confirmada queda fijada como el punto de partida del historial de conteos del lote, y el lote pasa a estado activo de mantenimiento. | P1 |
+
+#### 4.6 Mantenimiento de lote
+
+| ID | Requerimiento | Prioridad |
+|---|---|---|
+| VIV-019 | Crear registro de mantenimiento de lote con campos: fecha, lote, tipo de mantenimiento (riego, abonado, repoting, poda, bioinsumos), colaborador, cantidad si aplica (ej. litros aplicados), observaciones, foto opcional. | P1 |
+| VIV-020 | La aplicación de bioinsumos de Biofábrica en mantenimiento de lote dispara una salida de inventario en Biofábrica. | P1 |
+| VIV-021 | Registro de autoría dual. | P1 |
+| VIV-022 | Listar registros de mantenimiento por lote y fecha. | P1 |
+
+#### 4.7 Conteo de plantas vivas
+
+| ID | Requerimiento | Prioridad |
+|---|---|---|
+| VIV-023 | Crear registro de conteo físico de plantas vivas con campos: Lot ID, fecha del conteo, cantidad actual de plantas vivas contadas, colaborador, notas. | P1 |
+| VIV-024 | Al guardar el conteo, el sistema **calcula automáticamente la mortalidad del período** como diferencia entre el conteo actual y el anterior. El inventario de plantas vivas del lote se actualiza con el nuevo conteo. | P1 |
+| VIV-025 | Listar historial de conteos por lote con cantidad viva y mortalidad calculada por período. | P1 |
+
+#### 4.8 Graduación a "listo para venta"
+
+| ID | Requerimiento | Prioridad |
+|---|---|---|
+| VIV-026 | Graduar un lote (o una parte de él): asignar categoría de precio, registrar cantidad lista, fecha. | P1 |
+| VIV-027 | Las plantas graduadas entran al stock disponible para ventas e inventario. | P1 |
+| VIV-028 | Un lote puede graduarse parcialmente en varias fechas. | P1 |
+
+#### 4.9 Salidas de lote
+
+| ID | Requerimiento | Prioridad |
+|---|---|---|
+| VIV-029 | Crear salida de plantas con campos: fecha, lote, cantidad, tipo de salida (venta externa o uso interno/siembra en Tierramor), precio unitario si es venta, valor total si es venta, destino. | P1 |
+| VIV-030 | La salida actualiza el stock del lote. | P1 |
+| VIV-031 | Al registrar una salida de **uso interno**, el sistema genera automáticamente una **factura interna** (lote, cantidad, precio unitario interno del catálogo, valor total) para la contabilidad de transferencias entre departamentos. | P1 |
+| VIV-032 | Las salidas para uso interno quedan trazadas hacia Producción de Alimentos si el destino es una siembra. | P2 |
+| VIV-033 | Registro de autoría dual. | P1 |
+| VIV-034 | Listar salidas por especie, tipo y período. | P1 |
+
+#### 4.10 Cotizador
+
+| ID | Requerimiento | Prioridad |
+|---|---|---|
+| VIV-035 | Antes de crear una cotización, revisar los precios por cliente: el sistema carga los precios base del catálogo (especie + categoría → precio unitario). El encargado puede aplicar un ajuste (descuento o premium) por cliente. El precio ajustado queda registrado en la cotización. | P1 |
+| VIV-036 | Crear una cotización: agregar líneas de ítem (especie + categoría de precio + **lote de origen** + cantidad + precio unitario ajustado), información del cliente (nombre, email, teléfono), notas adicionales, fecha de validez. | P1 |
+| VIV-037 | Cada línea de ítem debe estar vinculada a un lote específico. Cuando hay múltiples lotes disponibles de la misma especie, el encargado selecciona el lote de origen por línea. | P1 |
+| VIV-038 | El sistema calcula el total de la cotización automáticamente. | P1 |
+| VIV-039 | Generar una vista imprimible / PDF de la cotización con formato profesional. | P1 |
+| VIV-040 | Registrar el estado de la cotización: pendiente, aceptada, rechazada. | P1 |
+| VIV-041 | Listar cotizaciones por estado, cliente y período. | P1 |
+| VIV-042 | Al aceptar una cotización, crear automáticamente la salida de inventario correspondiente (venta externa). | P2 |
+| VIV-043 | Los clientes externos no tienen acceso al portal — la cotización se genera internamente y se comparte como PDF o enlace de solo lectura. | P1 |
+| VIV-044 | El encargado registra en el CRM de Notion cada interacción relevante con clientes externos (cotización creada, cambio de estado, venta confirmada). Este paso ocurre fuera del portal — el portal no escribe al CRM directamente. | P1 |
 
 ## Requerimientos de experiencia de usuario
 
@@ -475,6 +431,7 @@ Es lunes por la mañana y Daniela, encargada del área de hortalizas, sale a hac
 - **Web Speech API (es-CR):** Dictado por voz en campos de texto. Se activa con un botón de micrófono junto al campo. No requiere backend — se procesa en el navegador. Es una mejora progresiva: si el navegador no soporta la API, el campo sigue funcionando como texto normal.
 - **Notion API:** Recibe resúmenes periódicos de KPIs generados por un job programado en el backend. No es sincronización en tiempo real — es un push periódico.
 - **Google Calendar (embed):** Integrado en el módulo de Proveduría como iframe para consulta del calendario de transportes.
+- **WhatsApp Business API (en evaluación):** Posible capa de interfaz para que el equipo de campo registre actividades via WhatsApp en lugar de la app web. Un agente de IA recibiría los mensajes, los interpretaría y los escribiría al backend. Resuelve el problema de adopción sin requerir que los trabajadores aprendan una nueva herramienta. Costo operativo estimado: <$20/mes para el volumen de Tierramor. Requiere decisión de arquitectura previa al TDD — puede implementarse como interfaz alternativa sobre el mismo backend (Supabase via Workers) o como parte de un stack centralizado en Notion.
 
 ### Almacenamiento de datos y privacidad
 
@@ -494,7 +451,7 @@ Es lunes por la mañana y Daniela, encargada del área de hortalizas, sale a hac
 ### Desafíos potenciales
 
 - **Conectividad intermitente:** Algunas zonas de la finca tienen cobertura irregular. En Fase 1, el sistema requiere conexión para guardar. En Fase 2 se evalúa soporte offline con sincronización diferida.
-- **Adopción del equipo de campo:** La transición desde WhatsApp puede generar resistencia. Se requiere capacitación práctica y formularios suficientemente simples para no frustrar a usuarios con bajo nivel digital.
+- **Adopción del equipo de campo:** La transición desde WhatsApp puede generar resistencia. Se requiere capacitación práctica y formularios suficientemente simples para no frustrar a usuarios con bajo nivel digital. *En evaluación: usar WhatsApp como interfaz nativa de registro (via agente de IA) eliminaría esta fricción por completo — los colaboradores registrarían desde la misma app que ya usan, sin curva de aprendizaje.*
 - **Consistencia de catálogos:** La calidad de los datos depende de que los catálogos (cultivos, materias primas, especies) estén bien configurados antes del lanzamiento. Un catálogo incompleto genera fricciones en el uso diario.
 - **Integraciones entre departamentos:** Las salidas automáticas de inventario de Biofábrica disparadas desde Producción de Alimentos y Vivero requieren validación rigurosa para evitar discrepancias de inventario.
 - **Carga inicial de datos:** La migración desde Google Sheets (Plan de Siembra) y AppSheet (Disponibilidad, Pedido de Cocina, Cosecha) es manual. Se necesita definir un proceso de carga inicial antes del go-live.
@@ -505,40 +462,38 @@ Es lunes por la mañana y Daniela, encargada del área de hortalizas, sale a hac
 
 La Fase 1 cubre seis departamentos con flujos bien definidos. La complejidad es media-alta por las integraciones entre departamentos y la necesidad de un sistema de autenticación y catálogos robusto desde el inicio.
 
-**Estimación total Fase 1:** 16 a 22 semanas de desarrollo con un equipo de 2 personas.
+**Estimación total Fase 1:** 14 a 18 semanas de desarrollo con un equipo de 2 personas. (Reducido respecto al estimado original al excluir Limpieza, Mantenimiento y Proveduría del scope.)
 
 ### Tamaño del equipo
 
 - 1 desarrollador fullstack (frontend + backend + integraciones)
 - 1 diseñador/UX (puede ser part-time, especialmente en Sprints 1 y 2)
-- Javier y Nicolás como product owners disponibles para revisiones semanales
+- Javier como product owner, disponible para revisiones semanales
 
 ### Fases sugeridas
 
-**Fase 1a — Fundación (semanas 1–4)**
+**Fase 1a — Fundación (semanas 1–3)**
 - Sistema de autenticación y gestión de usuarios con roles.
-- Estructura base de la base de datos.
-- Gestión de catálogos: colaboradores, áreas, camas, cultivos, materias primas, productos terminados, especies, zonas, clusters.
+- Estructura base de la base de datos (schema Supabase completo).
+- Gestión de catálogos: colaboradores, áreas productivas, camas, cultivos, materias primas Biofábrica, productos terminados Biofábrica, especies Vivero, tipos de sustrato, tipos de contenedor.
 - Diseño del sistema de UI (paleta, tipografía, componentes base).
-- Módulo de Limpieza completo (Reporte de Labores, Limpieza de Áreas, Checklists, Inventarios).
+- Cloudflare Worker configurado y conectado a Supabase.
 
-**Fase 1b — Operaciones de campo (semanas 5–10)**
-- Módulo de Mantenimiento completo (Reporte de Trabajo, Avería, Solicitud de Materiales, Checklists).
-- Módulo de Proveduría (embed de Google Calendar).
-- Módulo de Producción de Alimentos: todos los flujos semanales (Plan de Siembra, Pedido de Propagación, Preparación de Camas, Siembra, Mantenimiento de Área, Aplicación de Insumos, Disponibilidad, Pedido de Cocina, Cosecha, Factura Interna).
-- Integración de dictado por voz en todos los campos de texto.
+**Fase 1b — Producción de Alimentos (semanas 4–9)**
+- Módulo completo: Plan de Siembra, Pedido de Propagación, Preparación de Camas, Siembra (con Lot ID), Aplicación de Insumos, Mantenimiento de Área, Disponibilidad Semanal, Pedido de Cocina, Cosecha, Factura Interna.
+- Dictado por voz en todos los campos de texto.
 - Upload de fotos a Google Drive.
 
-**Fase 1c — Inventarios y ventas (semanas 11–16)**
-- Módulo de Biofábrica completo (entradas, lotes, salidas, inventarios calculados, alertas).
+**Fase 1c — Biofábrica y Vivero (semanas 10–16)**
+- Módulo de Biofábrica completo (entradas, lotes de producción, salidas, inventarios calculados, alertas de stock mínimo, factura de venta externa).
 - Integración Biofábrica → Producción de Alimentos (descuento automático de inventario).
-- Módulo de Vivero completo (entradas, lotes, mantenimiento, graduación, salidas, cotizador).
+- Módulo de Vivero completo (entradas de MP, preparación de sustrato, llenado de contenedores, creación de lote, germinación/establecimiento, mantenimiento, conteo de plantas vivas, graduación, salidas con factura interna, cotizador con revisión de precios y selección de lote).
 - Integración Biofábrica → Vivero.
 
-**Fase 1d — Integración, QA y lanzamiento (semanas 17–22)**
-- Integración con Notion (job periódico de push de KPIs).
-- Pruebas de campo con usuarios reales (colaboradores, Cocina, Javier, Nicolás).
-- Carga inicial de datos (migración desde Sheets y AppSheet).
+**Fase 1d — QA y lanzamiento (semanas 17–18)**
+- Integración con Notion (push periódico de KPIs).
+- Pruebas de campo con usuarios reales (colaboradores de campo, Cocina, Javier).
+- Carga inicial de datos (migración manual desde Sheets y AppSheet).
 - Capacitación del equipo.
 - Go-live y soporte de adopción inicial.
 
@@ -638,108 +593,9 @@ Criterios de aceptación:
 - Dentro de cada cluster se pueden agregar áreas con sus ítems de inspección.
 - Los cambios se reflejan inmediatamente en los formularios de checklist.
 
-### Limpieza
+### Portal de Operaciones — Fuera de scope
 
-**US-014 — Crear reporte de labores**
-Como colaborador de Limpieza, quiero registrar el reporte de mis labores diarias para dejar trazabilidad de las áreas que trabajé en mi turno.
-Criterios de aceptación:
-- El formulario incluye: fecha (por defecto hoy), turno AM/PM, rol, colaborador ejecutor, áreas trabajadas (selección múltiple), duración en horas/minutos, observaciones, foto opcional.
-- El campo de observaciones tiene botón de dictado por voz.
-- Se registra automáticamente quién ingresó el dato (usuario en sesión).
-- Al guardar, aparece en la lista de reportes del día.
-
-**US-015 — Crear registro de limpieza de área**
-Como colaborador de Limpieza, quiero registrar la limpieza de un área específica con su condición final para dejar constancia del trabajo realizado.
-Criterios de aceptación:
-- El formulario incluye: fecha, turno, área, colaborador ejecutor, duración, condición final (selección: excelente/buena/regular/mala), observaciones con dictado por voz, foto opcional.
-- Autoría dual registrada.
-- Al guardar, aparece en el historial de esa área.
-
-**US-016 — Completar checklist de zona**
-Como colaborador de Limpieza, quiero completar el checklist de una zona marcando los ítems inspeccionados para evidenciar que revisé toda el área.
-Criterios de aceptación:
-- El usuario selecciona la zona y ve la lista de secciones e ítems.
-- Puede marcar cada ítem como completado y agregar una nota opcional por ítem.
-- Se muestra una barra de progreso con porcentaje completado.
-- Puede guardar un checklist incompleto y retomarlo después.
-- Al completar el 100%, el sistema marca el checklist como finalizado con fecha y hora.
-
-**US-017 — Ver historial de checklists de Limpieza**
-Como supervisor de Limpieza, quiero ver el historial de checklists completados por zona para verificar la frecuencia y calidad de las inspecciones.
-Criterios de aceptación:
-- Se puede filtrar el historial por zona y rango de fechas.
-- Cada entrada muestra: zona, fecha, colaborador, porcentaje de completitud.
-- Se puede abrir el detalle de un checklist para ver el estado de cada ítem.
-
-**US-018 — Registrar inventario de ropa de cama**
-Como colaborador de Limpieza, quiero ingresar el conteo de los 21 ítems de ropa de cama para mantener un registro actualizado del inventario.
-Criterios de aceptación:
-- El formulario muestra los 21 ítems fijos con campo numérico de cantidad por ítem.
-- Se registra la fecha del conteo y el colaborador que lo realizó.
-- Al guardar, el conteo aparece en el historial con fecha.
-- Se puede ver el historial de conteos anteriores.
-
-**US-019 — Registrar inventario de props de Wellness**
-Como colaborador de Limpieza, quiero ingresar el conteo de props de Wellness para Maloca y Movement Studio para mantener el inventario actualizado.
-Criterios de aceptación:
-- El formulario muestra los ítems de props organizados por espacio (Maloca / Movement Studio).
-- Se registra fecha y colaborador.
-- Historial de conteos accesible.
-
-### Mantenimiento
-
-**US-020 — Crear reporte de trabajo de Mantenimiento**
-Como colaborador de Mantenimiento, quiero registrar el trabajo realizado en un área para dejar trazabilidad de las intervenciones y su duración.
-Criterios de aceptación:
-- El formulario incluye: fecha, cluster, área específica, colaborador ejecutor, tipo de trabajo, descripción con dictado por voz, duración, materiales usados, fotos opcionales, observaciones con dictado por voz.
-- Autoría dual registrada.
-- Al guardar, aparece en la lista de trabajos del día filtrable por cluster y área.
-
-**US-021 — Reportar una avería**
-Como colaborador de Mantenimiento, quiero reportar una avería de emergencia con foto y nivel de urgencia para que el equipo de gestión pueda atenderla rápidamente.
-Criterios de aceptación:
-- El formulario incluye: fecha y hora (automáticas), área, descripción con dictado por voz, colaborador que reporta, nivel de urgencia (alta/media/baja), fotos, estado inicial = "reportada".
-- La avería aparece inmediatamente en la lista de averías activas destacada visualmente.
-- Autoría dual registrada.
-
-**US-022 — Actualizar estado de avería**
-Como supervisor de Mantenimiento, quiero actualizar el estado de una avería de "reportada" a "en atención" o "resuelta" para mantener al equipo informado sobre el progreso.
-Criterios de aceptación:
-- Desde el detalle de la avería, el supervisor puede cambiar el estado.
-- Al marcar como "resuelta", se registra la fecha y hora de resolución.
-- Las averías resueltas desaparecen de la lista de averías activas.
-
-**US-023 — Crear solicitud de materiales**
-Como colaborador de Mantenimiento, quiero crear una solicitud de materiales con lista de ítems para que el equipo de gestión la apruebe y provea los materiales necesarios.
-Criterios de aceptación:
-- El formulario incluye: fecha, área, colaborador solicitante, lista de ítems (descripción + cantidad + unidad, con opción de agregar múltiples líneas), justificación, estado inicial = "pendiente".
-- Autoría dual registrada.
-- Al guardar, aparece en la lista de solicitudes pendientes.
-
-**US-024 — Aprobar o rechazar solicitud de materiales**
-Como supervisor de Mantenimiento, quiero aprobar o rechazar solicitudes de materiales para gestionar los recursos de mantenimiento.
-Criterios de aceptación:
-- El supervisor puede cambiar el estado de una solicitud a "aprobada" o "rechazada" con una nota.
-- Al aprobar, el estado puede avanzar a "entregada" cuando los materiales son provistos.
-- El colaborador solicitante ve el estado actualizado de su solicitud.
-
-**US-025 — Completar checklist de cluster**
-Como colaborador de Mantenimiento, quiero completar el checklist de un cluster para evidenciar que revisé todas las áreas del sector.
-Criterios de aceptación:
-- Se selecciona el cluster y se muestran las áreas e ítems configurados.
-- Se puede marcar cada ítem como completado, agregar nota y subir foto opcional por ítem.
-- Barra de progreso con porcentaje completado por cluster.
-- Se puede guardar incompleto y retomar.
-- Historial de checklists por cluster y fecha accesible para supervisores.
-
-### Proveduría y transportes
-
-**US-026 — Ver calendario de transportes**
-Como colaborador con acceso a Proveduría, quiero ver el calendario de transportes embebido en el portal para consultar los viajes programados sin salir del sistema.
-Criterios de aceptación:
-- El módulo de Proveduría muestra el Google Calendar de transportes como iframe.
-- El calendario es de solo visualización dentro del portal.
-- La vista es legible en móvil.
+> Las historias de usuario de Limpieza (US-014–US-019), Mantenimiento (US-020–US-025) y Proveduría (US-026) no forman parte de este portal. Quedan documentadas en el Ops Portal de Nicolás. Su integración con este portal se diseñará en Fase 2.
 
 ### Producción de alimentos
 
@@ -880,25 +736,26 @@ Criterios de aceptación:
 ### Vivero
 
 **US-045 — Registrar entrada de materia prima de Vivero**
-Como colaborador de Vivero, quiero registrar la entrada de materias primas del vivero para actualizar el stock disponible.
+Como colaborador de Vivero, quiero registrar la entrada de materias primas para actualizar el stock y mantener trazabilidad del material recibido.
 Criterios de aceptación:
-- El formulario incluye: fecha, materia prima (del catálogo de Vivero), cantidad, unidad, tipo, costo si es comprada, colaborador ejecutor, observaciones.
-- Al guardar, el stock de la materia prima de Vivero se actualiza.
+- El formulario incluye: fecha, materia prima (del catálogo), cantidad, unidad, tipo (comprada / insumo de finca / campo), costo si es comprada, colaborador ejecutor, observaciones.
+- Al guardar, el sistema asigna un ID de grupo único al lote de material recibido.
+- El stock de la materia prima se actualiza.
 - Autoría dual registrada.
 
 **US-046 — Crear lote de plantas**
 Como colaborador de Vivero, quiero registrar la creación de un nuevo lote de plantas para iniciar su seguimiento productivo.
 Criterios de aceptación:
-- El formulario incluye: especie (del catálogo), origen (siembra propia/adquisición mayorista), fecha de inicio, cantidad inicial, responsable, notas.
+- El formulario incluye: especie (del catálogo), origen (siembra propia / esquejes / adquisición mayorista / repoting desde Lote X), fecha de inicio, cantidad inicial, contenedores asignados (del inventario disponible), responsable, notas.
+- El sistema determina el flujo siguiente según el origen: lotes de semillas o esquejes pasan por germinación/establecimiento antes de mantenimiento; lotes de adquisición mayorista o repoting van directamente a mantenimiento.
 - Al guardar, el lote aparece en la lista de lotes activos.
 - Autoría dual registrada.
 
 **US-047 — Registrar mantenimiento de lote**
-Como colaborador de Vivero, quiero registrar las actividades de mantenimiento realizadas en un lote para tener trazabilidad del cuidado de las plantas y actualizar el inventario de Biofábrica si se usaron bioinsumos.
+Como colaborador de Vivero, quiero registrar las actividades de mantenimiento en un lote para tener trazabilidad del cuidado y actualizar el inventario de Biofábrica si se usaron bioinsumos.
 Criterios de aceptación:
-- El formulario incluye: fecha, lote, tipo de mantenimiento (riego, abonado, repotting, poda, bioinsumos, retiro de mortalidad), colaborador ejecutor, cantidad si aplica (litros, plantas retiradas), observaciones con dictado por voz, foto opcional.
+- El formulario incluye: fecha, lote, tipo de mantenimiento (riego, abonado, repoting, poda, bioinsumos), colaborador ejecutor, cantidad si aplica (litros), observaciones con dictado por voz, foto opcional.
 - Si se registra uso de bioinsumos de Biofábrica, el sistema genera una salida automática en Biofábrica.
-- Si se registra retiro de mortalidad, la cantidad viva del lote se actualiza.
 - Autoría dual registrada.
 
 **US-048 — Graduar lote a "listo para venta"**
@@ -910,17 +767,20 @@ Criterios de aceptación:
 - Las plantas graduadas aparecen en el inventario disponible de Vivero.
 
 **US-049 — Registrar salida de plantas**
-Como colaborador de Vivero, quiero registrar la salida de plantas de un lote (venta o uso interno) para actualizar el stock y tener registro financiero si es venta.
+Como colaborador de Vivero, quiero registrar la salida de plantas (venta o uso interno) para actualizar el stock y generar el registro financiero correspondiente.
 Criterios de aceptación:
 - El formulario incluye: fecha, lote, cantidad, tipo de salida (venta externa/uso interno), precio unitario y valor total si es venta, destino.
 - Al guardar, el stock del lote se actualiza.
+- Si el tipo de salida es uso interno, el sistema genera automáticamente una factura interna registrando el valor de la transferencia entre departamentos.
 - Autoría dual registrada.
 
 **US-050 — Crear cotización para cliente externo**
-Como encargado de Vivero, quiero crear una cotización para un cliente externo seleccionando especies y categorías de precio para presentarle una oferta profesional.
+Como encargado de Vivero, quiero crear una cotización seleccionando lotes específicos y ajustando precios por cliente para presentar una oferta con trazabilidad completa de inventario.
 Criterios de aceptación:
-- El formulario incluye: información del cliente (nombre, email, teléfono), fecha de validez, líneas de ítem (especie + categoría de precio + cantidad), notas adicionales.
-- El total se calcula automáticamente según el catálogo de precios.
+- Antes de armar la cotización, el encargado revisa los precios base del catálogo y puede aplicar un ajuste (descuento o premium) por cliente.
+- El formulario incluye: información del cliente (nombre, email, teléfono), fecha de validez, líneas de ítem (especie + categoría de precio + lote de origen + cantidad + precio ajustado), notas adicionales.
+- Cada línea de ítem debe estar vinculada a un lote específico; cuando hay múltiples lotes de la misma especie, el encargado elige el lote de origen.
+- El total se calcula automáticamente.
 - Se puede agregar y eliminar líneas de ítem libremente.
 - Al guardar, la cotización queda en estado "pendiente".
 
@@ -943,7 +803,43 @@ Como encargado de Vivero, quiero ver todos los lotes activos con su especie, can
 Criterios de aceptación:
 - La vista muestra: especie, origen, fecha de inicio, cantidad actual viva, cantidad graduada disponible, estado del lote.
 - Se puede filtrar por especie y estado.
-- Se puede abrir el detalle de un lote para ver su historial de mantenimiento y graduaciones.
+- Se puede abrir el detalle de un lote para ver su historial de mantenimiento, conteos y graduaciones.
+
+**US-064 — Preparar batch de sustrato**
+Como colaborador de Vivero, quiero registrar la producción de un batch de sustrato para llevar el inventario y saber qué materiales se consumieron.
+Criterios de aceptación:
+- El formulario incluye: tipo de sustrato (del catálogo con código de tipo), componentes + cantidades (múltiples líneas), cantidad de sustrato producida, fecha, colaborador.
+- Al guardar, el sistema genera un ID de batch único y descuenta los componentes del inventario de materias primas.
+- El batch aparece en el inventario de sustratos disponibles.
+
+**US-065 — Llenar bolsas/macetas**
+Como colaborador de Vivero, quiero registrar el llenado de contenedores para mantener el inventario de bolsas y macetas listas para siembra.
+Criterios de aceptación:
+- El formulario incluye: tipo de contenedor (del catálogo), tamaño, batch de sustrato utilizado + cantidad, cantidad de contenedores llenados, fecha, colaborador.
+- Al guardar, el sustrato utilizado se descuenta del inventario de sustratos y los contenedores listos se suman al inventario de contenedores disponibles.
+
+**US-066 — Registrar seguimiento de germinación**
+Como colaborador de Vivero, quiero registrar el progreso de germinación de un lote de semillas o esquejes para documentar el proceso hasta confirmar el prendimiento.
+Criterios de aceptación:
+- El formulario incluye: Lot ID, fecha, observaciones, tasa estimada de prendimiento, foto opcional.
+- Se pueden registrar múltiples eventos de seguimiento por lote.
+- Los registros son visibles en el historial del lote.
+
+**US-067 — Registrar conteo de establecimiento**
+Como colaborador de Vivero, quiero registrar el conteo final al terminar la germinación para fijar cuántas plantas vivas quedan y devolver los materiales de los contenedores fallidos al inventario.
+Criterios de aceptación:
+- El formulario incluye: Lot ID, cantidad de plantas vivas confirmadas, cantidad fallida, contenedores a devolver, sustrato a devolver, fecha, colaborador.
+- Al guardar, el sistema acredita automáticamente los contenedores y sustratos de los contenedores fallidos al inventario correspondiente.
+- La cantidad viva confirmada queda como punto de partida del historial de conteos del lote.
+- El lote pasa a estado de mantenimiento activo.
+
+**US-068 — Registrar conteo de plantas vivas**
+Como colaborador de Vivero, quiero registrar un conteo físico periódico de plantas vivas de un lote para mantener el inventario actualizado y que el sistema calcule la mortalidad automáticamente.
+Criterios de aceptación:
+- El formulario incluye: Lot ID, fecha del conteo, cantidad actual de plantas vivas contadas, colaborador, notas.
+- Al guardar, el sistema calcula la mortalidad del período como diferencia entre el conteo actual y el anterior y la muestra en el historial del lote.
+- El stock de plantas vivas del lote se actualiza con el nuevo conteo.
+- El historial de conteos muestra fecha, cantidad viva y mortalidad calculada por período.
 
 ### Requerimientos transversales
 

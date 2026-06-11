@@ -1,0 +1,14 @@
+name = "tierramor-api"
+main = "worker.js"
+compatibility_date = "2024-09-23"
+workers_dev = true
+
+# Para configurar los secrets, ejecutar una vez por secret:
+#   wrangler secret put SUPABASE_URL
+#   wrangler secret put SUPABASE_SERVICE_KEY
+#   wrangler secret put SUPABASE_JWT_SECRET
+#   wrangler secret put GOOGLE_DRIVE_SERVICE_ACCOUNT
+#   wrangler secret put GOOGLE_DRIVE_FOLDER_ID
+
+# Para desarrollo local, copiar .dev.vars.example → .dev.vars y completar los valores.
+# El archivo .dev.vars NUNCA se commitea (ver .gitignore).
