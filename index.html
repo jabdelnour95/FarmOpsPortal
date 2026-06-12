@@ -197,6 +197,13 @@ body{font-family:'Cormorant',Georgia,serif;background:var(--cream);color:var(--b
 .crit-row{font-size:.76rem;font-family:sans-serif;color:var(--brown);padding:.25rem 0;border-bottom:1px solid rgba(118,114,78,.15);}
 .crit-row:last-child{border-bottom:none;}
 .sec-band{font-size:.65rem;text-transform:uppercase;letter-spacing:.12em;font-family:sans-serif;color:white;background:var(--brown);border-radius:6px;padding:.35rem .75rem;margin:.9rem 0 .6rem;display:block;}
+/* FOOD MODULE */
+#food-screen{background:var(--cream);}
+.food-body{padding:1.1rem;}
+.add-row-btn{background:none;border:1.5px dashed rgba(153,92,68,.4);border-radius:8px;
+             padding:.5rem .85rem;font-size:.78rem;font-family:sans-serif;color:var(--clay);
+             cursor:pointer;width:100%;text-align:center;margin-top:.3rem;transition:background .15s;}
+.add-row-btn:active{background:rgba(153,92,68,.06);}
 </style>
 </head>
 <body>
@@ -224,9 +231,9 @@ body{font-family:'Cormorant',Georgia,serif;background:var(--cream);color:var(--b
   <div class="hdr"><button class="btn-bk" onclick="nav('home')">←</button><span class="hdr-t">Finca</span><button class="btn-out" onclick="logout()">Salir</button></div>
   <div class="home-greeting">Módulos de Finca</div>
   <div class="dept-gallery">
-    <div class="dept-tile" onclick="openFincaModule('produccion')">
+    <div class="dept-tile" onclick="openFood()">
       <div class="tile-icon finca">🥬</div>
-      <div class="tile-body"><div class="tile-name">Producción de Alimentos</div><div class="tile-desc">Siembras, cosechas y pedidos de cocina</div><span class="tile-badge soon">En construcción</span></div>
+      <div class="tile-body"><div class="tile-name">Producción de Alimentos</div><div class="tile-desc">Siembras, cosechas y pedidos de cocina</div><span class="tile-badge active">Activo</span></div>
     </div>
     <div class="dept-tile" onclick="openFincaModule('biofabrica')">
       <div class="tile-icon finca">🧪</div>
@@ -280,6 +287,54 @@ body{font-family:'Cormorant',Georgia,serif;background:var(--cream);color:var(--b
 <div id="cl-screen" class="screen">
   <div class="hdr"><button class="btn-bk" id="cl-back" onclick="nav('dept')">←</button><span class="hdr-t" id="cl-title">Checklist</span><button class="btn-out" onclick="logout()">Salir</button></div>
   <div class="cl-body" id="cl-body"></div>
+</div>
+
+<div id="food-screen" class="screen">
+  <div class="hdr">
+    <button class="btn-bk" onclick="nav('finca-home')">←</button>
+    <span class="hdr-t">Producción de Alimentos</span>
+    <button class="btn-out" onclick="logout()">Salir</button>
+  </div>
+  <div class="food-body">
+    <div class="glbl" style="margin-top:.2rem;">Registrar actividad</div>
+    <div class="grid">
+      <div class="gcard" onclick="openFoodForm('prep-cama')">
+        <div class="ct">🏗️ Preparar Cama</div>
+        <div class="cd">Preparación con insumos biológicos</div>
+      </div>
+      <div class="gcard" onclick="openFoodForm('siembra')">
+        <div class="ct">🌱 Siembra</div>
+        <div class="cd">Registrar nueva siembra en cama</div>
+      </div>
+      <div class="gcard" onclick="openFoodForm('aplic-insumos')">
+        <div class="ct">💧 Aplicar Insumos</div>
+        <div class="cd">Aplicación foliar, drench o al suelo</div>
+      </div>
+      <div class="gcard" onclick="openFoodForm('mantenimiento')">
+        <div class="ct">🌿 Mantenimiento</div>
+        <div class="cd">Chapea, deshierbe, poda, mulch y más</div>
+      </div>
+      <div class="gcard" onclick="openFoodForm('disponibilidad')">
+        <div class="ct">📋 Disponibilidad</div>
+        <div class="cd">Reporte semanal de cosechas estimadas</div>
+      </div>
+      <div class="gcard" onclick="openFoodForm('cosecha')">
+        <div class="ct">🌾 Cosecha</div>
+        <div class="cd">Registrar pesos en área de pesado</div>
+      </div>
+    </div>
+    <div style="margin-top:.65rem;">
+      <div class="gcard" onclick="openFincaModule('ordenes')" style="opacity:.6;pointer-events:none;">
+        <div class="ct">📦 Órdenes de Cocina</div>
+        <div class="cd">Ver pedidos de la semana para llevar al campo · <em>Próximamente</em></div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="glbl">Últimas cosechas</div>
+    <div id="food-recent-body">
+      <div style="font-size:.78rem;font-family:sans-serif;color:var(--tm);font-style:italic;">Cargando...</div>
+    </div>
+  </div>
 </div>
 
 <div id="con-screen" class="screen">
