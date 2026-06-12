@@ -90,7 +90,8 @@ Para correr el app localmente: `python -m http.server 8080` desde este directori
 │       ├── checklists.js       ← Lógica de checklists
 │       ├── forms.js            ← Formularios de reportes Ops
 │       ├── manuals.js          ← Manuales de Limpieza y Mantenimiento
-│       └── reports.js          ← Vista de reportes (Admin)
+│       ├── reports.js          ← Vista de reportes (Admin)
+│       └── food.js             ← Módulo Producción de Alimentos — 6 formularios completos
 ```
 
 ---
@@ -115,12 +116,19 @@ Para correr el app localmente: `python -m http.server 8080` desde este directori
 - [x] **Dashboard principal rediseñado** — galería de tiles por área (Finca, Operaciones, Cocina, Experiencias), visibilidad por rol y `profile.departments`
 - [x] **Arquitectura de navegación por niveles** — home → sub-galería (finca-home / ops-home) → módulo; botón Atrás rastreado via `state.deptParent`
 - [x] **Reportes movidos a cada sub-galería** — tile Admin-only dentro de Finca y Operaciones (no en el home principal)
+- [x] **Módulo Producción de Alimentos construido** — `js/modules/food.js` — pantalla `#food-screen` con galería de 6 formularios activos
+- [x] **Worker actualizado** — `CATALOG_ORDER` para ordenar camas por `code.asc`; handler especial para `POST /food/availability` con items en cascada; `POST /catalog/crops` permitido para no-admins; `GET /api/farm-workers` para dropdown de participantes — Version ID `69f598de-efca-48ef-98c8-adbeb52b206e`
 
 ### Próximos pasos (en orden)
-- [ ] **Construir módulos de farm** — Producción de Alimentos, Biofábrica, Vivero (cada uno con su pantalla, formularios y llamadas al Worker)
+- [x] **Tabla `farm_workers` creada en Supabase** — activa con datos del equipo.
+- [x] **Participantes: multi-select dropdown implementado** — Worker con `GET /api/farm-workers`; `_workersField()` en food.js; `_getParticipants()` para el submit; los nombres van al campo `observations` como "Participantes: Ana, Carlos"
+- [ ] **Verificar nombres de tablas en Worker** — el Worker usa `food_production_lots` / `harvest_records`; el TDD define `plantings` / `harvests`. Confirmar nombres reales en Supabase antes de testear submit.
+- [ ] **Módulo Biofábrica** — pantalla + formularios; requiere sesión de discovery
+- [ ] **Módulo Vivero** — pantalla + formularios; requiere sesión de discovery
 - [ ] **Implementar RLS policies en Supabase** — control de acceso por rol y departamento (antes del go-live)
 - [ ] **Crear usuarios de Supabase para el equipo** — justo antes del go-live, cuando los módulos estén listos
 - [ ] **Implementar upload de fotos** — Google Drive via service account (ver TODO en `worker/worker.js:handlePhotos`)
+- [ ] **Configurar GitHub Pages** — para deploy del frontend
 
 ---
 
@@ -129,7 +137,7 @@ Para correr el app localmente: `python -m http.server 8080` desde este directori
 ### Farm Portal — Fase 1 (este proyecto)
 | Departamento | Estado en portal | Flujo mapeado | Schema Supabase |
 |---|---|---|---|
-| Producción de Alimentos | 🔄 Tile placeholder en finca-home | ✅ | ✅ En Supabase |
+| Producción de Alimentos | ✅ Activo — 6 formularios en `#food-screen` | ✅ | ✅ En Supabase |
 | Biofábrica | 🔄 Tile placeholder en finca-home | ✅ | ✅ En Supabase |
 | Vivero | 🔄 Tile placeholder en finca-home | ✅ | ✅ En Supabase |
 
@@ -151,7 +159,13 @@ Cada departamento nuevo requiere una sesión de discovery de 20–30 min antes d
 #ls (login)
   └─→ #home (galería principal)
         ├─→ #finca-home (sub-galería Finca)
-        │     ├─→ Producción de Alimentos  [placeholder → #con-screen]
+        │     ├─→ #food-screen (Producción de Alimentos) ← openFood() directo en onclick
+        │     │     ├─→ form: prep-cama
+        │     │     ├─→ form: siembra
+        │     │     ├─→ form: aplic-insumos
+        │     │     ├─→ form: mantenimiento
+        │     │     ├─→ form: disponibilidad
+        │     │     └─→ form: cosecha
         │     ├─→ Biofábrica               [placeholder → #con-screen]
         │     ├─→ Vivero                   [placeholder → #con-screen]
         │     └─→ Reportes (admin)         [placeholder → #con-screen]
@@ -163,6 +177,8 @@ Cada departamento nuevo requiere una sesión de discovery de 20–30 min antes d
         ├─→ Cocina       [tile deshabilitado — Próximamente]
         └─→ Experiencias [tile deshabilitado — Próximamente]
 ```
+
+**Nota:** El tile de Producción de Alimentos en `finca-home` llama `openFood()` directamente (no `openFincaModule('produccion')`). Esto evita una dependencia circular entre `navigation.js` y `food.js`.
 
 ### Visibilidad de tiles por rol
 
@@ -190,6 +206,19 @@ Documentadas en detalle en `Docs/TDD.md` sección 9. Resumen:
 | D-002 | Upload de fotos a Google Drive | Via Cloudflare Worker (service account oculta) |
 | D-003 | Pedidos de cocina por semana | Múltiples permitidos (campo `label` opcional) |
 | D-004 | Inventario de contenedores del Vivero | Por tipo de contenedor, no por batch |
+| D-005 | Participantes en formularios de Producción | Multi-select dropdown desde tabla `farm_workers`; temporalmente texto libre en `observations` |
+| D-006 | Cosecha: trazabilidad por canasta | Una fila por canasta (crop + área + cama + kg). Un registro en `harvest_records` por fila. |
+| D-007 | Preparar Cama con múltiples camas | Filas dinámicas; un `bed_preparations` record por cama via `Promise.all()` |
+| D-008 | Scope de Aplicar Insumos / Mantenimiento | Toggle "área completa" vs "camas específicas" — cambia la UI sin cambiar el schema |
+| D-009 | Ordenamiento de camas en catálogo | `code.asc` (no `name.asc`) — corregido en Worker via `CATALOG_ORDER` map |
+
+### Patrones de `food.js`
+
+- **Estado de módulo:** `_cats` (catálogos cacheados), `_plantings`, filas dinámicas por formulario (`_prepBedRows`, `_harvestRows`, etc.), `_applyScope` / `_maintScope` para toggles.
+- **`_loadCats()`:** Fetcha `beds`, `crops`, `areas`, `bio` en paralelo con `Promise.all()`. Se cachea en `_cats` para el resto de la sesión.
+- **`_bedOptsByArea(areaId)`:** Filtra `_cats.beds` client-side. No hace llamadas al Worker — las camas ya están en caché.
+- **Window bindings:** `_fic` / `_fac` (add/remove input rows), `_fpb` / `_fab` (prep/apply bed rows), `_fhr` (harvest rows), `_foodFilterBeds`, `_foodApplyScope`, `_foodMaintScope`, `_foodNewCropToggle`, `_foodHarvestUnit`, `_foodAvailUnit`, `_foodApplyScopeAreaChanged`.
+- **Submit multi-registro:** `Promise.all(rows.map(row => _api(...)))` — una llamada al Worker por fila.
 
 ---
 

@@ -7,6 +7,12 @@ import { toggleMic, stopRec }                           from './modules/audio.js
 import { handlePhotoUpload, removePhoto }               from './modules/photos.js';
 import { openManualSection, renderManualLimp, renderManualManto } from './modules/manuals.js';
 import { openReports, toggleAcc, viewReport }           from './modules/reports.js';
+import { openFood, openFoodForm, submitFoodForm,
+         addFoodInputRow, removeFoodInputRow,
+         addFoodAvailRow, removeFoodAvailRow,
+         addPrepBedRow, removePrepBedRow,
+         addApplyBedRow, removeApplyBedRow,
+         addHarvestRow, removeHarvestRow } from './modules/food.js';
 
 // Expose to HTML event handlers (onclick attributes) and cross-module calls
 Object.assign(window, {
@@ -19,6 +25,13 @@ Object.assign(window, {
   handlePhotoUpload, removePhoto,
   openManualSection,
   openReports, toggleAcc, viewReport,
+  // Food production module
+  openFood, openFoodForm, submitFoodForm,
+  addFoodInputRow, removeFoodInputRow,
+  addFoodAvailRow, removeFoodAvailRow,
+  addPrepBedRow, removePrepBedRow,
+  addApplyBedRow, removeApplyBedRow,
+  addHarvestRow, removeHarvestRow,
   // Internal bindings used by navigation.js to avoid circular imports
   _openChecklistMenu: openChecklistMenu,
   _openInventarios:   openInventarios,

@@ -331,6 +331,11 @@ const CATALOG_TABLE = {
   'container-types': 'container_types',
 };
 
+// Tables that don't have a 'name' column for ordering
+const CATALOG_ORDER = {
+  beds: 'code.asc',
+};
+
 async function handleCatalogs(request, env, auth) {
   const segments = new URL(request.url).pathname.split('/').filter(Boolean);
   // segments: ['api', 'catalogs', ':resource', ':id?']
@@ -341,11 +346,17 @@ async function handleCatalogs(request, env, auth) {
   if (!table) return errResponse(request, 'NOT_FOUND', 'Catálogo no encontrado', 404);
 
   if (request.method === 'GET') {
-    const res = await sbGet(env, table, 'order=name.asc');
+    const order = CATALOG_ORDER[resource] ?? 'name.asc';
+    const res = await sbGet(env, table, `order=${order}`);
     return proxySb(request, res);
   }
 
+  // Field workers can create new crops (but not edit or delete)
   if (auth.role !== 'admin') {
+    if (request.method === 'POST' && resource === 'crops') {
+      const res = await sbPost(env, table, await request.json());
+      return proxySb(request, res);
+    }
     return errResponse(request, 'FORBIDDEN', 'Solo admin puede modificar catálogos', 403);
   }
 
@@ -447,6 +458,18 @@ async function handleFood(request, env, auth) {
   if (resource === 'kitchen-orders' && action === 'confirm' && request.method === 'PATCH') {
     const res = await sbPatch(env, 'kitchen_orders', `id=eq.${itemId}`, { status: 'confirmed' });
     return proxySb(request, res);
+  }
+
+  // ── availability (create with items array) — must come before generic FOOD_TABLE handler
+  if (resource === 'availability' && !itemId && request.method === 'POST') {
+    const { items = [], ...fields } = await request.json();
+    const availRes = await sbPost(env, 'weekly_availability', fields);
+    if (!availRes.ok) return proxySb(request, availRes);
+    const avail = (await availRes.json())[0];
+    if (items.length) {
+      await sbPost(env, 'weekly_availability_items', items.map(i => ({ ...i, availability_id: avail.id })));
+    }
+    return okResponse(request, avail, 201);
   }
 
   // ── recursos simples con GET/POST genérico
@@ -723,6 +746,16 @@ async function handleInventory(request, env, auth) {
   return proxySb(request, res);
 }
 
+// ─── FARM WORKERS ──────────────────────────────────────────────────────────
+
+async function handleFarmWorkers(request, env, auth) {
+  if (request.method !== 'GET') {
+    return errResponse(request, 'METHOD_NOT_ALLOWED', 'Método no permitido', 405);
+  }
+  const res = await sbGet(env, 'farm_workers', 'active=eq.true&order=name.asc');
+  return proxySb(request, res);
+}
+
 // ─── PHOTOS ────────────────────────────────────────────────────────────────
 
 async function handlePhotos(request, env, auth) {
@@ -777,6 +810,7 @@ export default {
     if (pathname.startsWith('/api/bio/'))        return handleBio(request, env, auth);
     if (pathname.startsWith('/api/nursery/'))    return handleNursery(request, env, auth);
     if (pathname.startsWith('/api/inventory/'))  return handleInventory(request, env, auth);
+    if (pathname === '/api/farm-workers')        return handleFarmWorkers(request, env, auth);
     if (pathname.startsWith('/api/photos/'))     return handlePhotos(request, env, auth);
 
     return errResponse(request, 'NOT_FOUND', 'Ruta no encontrada', 404);
