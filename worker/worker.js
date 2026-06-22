@@ -379,8 +379,8 @@ const FOOD_TABLE = {
   'planting-plans': 'planting_plans',
   'propagation-orders': 'propagation_orders',
   'area-maintenance': 'area_maintenance',
-  harvests: 'harvest_records',
-  invoices: 'food_invoices',
+  harvests: 'harvests',
+  invoices: 'food_invoices', // TODO: confirmar si la tabla real es 'internal_invoices_food' (ver TDD 3.3)
   'kitchen-orders': 'kitchen_orders',
   availability: 'weekly_availability',
 };

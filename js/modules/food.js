@@ -159,7 +159,7 @@ function _buildObs(obsId) {
 // ─── BIO-INPUT ROWS ────────────────────────────────────────────────────────
 
 export function addFoodInputRow() {
-  _inputRows.push({ product_id: '', qty: '' });
+  _inputRows.push({ product_id: '', qty: '', total_liquid: '' });
   _renderInputRows();
 }
 
@@ -175,7 +175,35 @@ function _renderInputRows() {
     el.innerHTML = `<div style="font-size:.75rem;font-family:sans-serif;color:var(--tm);font-style:italic;padding:.2rem 0;">Sin insumos agregados.</div>`;
     return;
   }
-  el.innerHTML = _inputRows.map((row, i) => `
+  // aplic-insumos necesita registrar tanto el ingrediente activo como el volumen total
+  // de líquido aplicado (ej: 3 bombas de 18L con 1L de Emulsión c/u = 3L activo / 54L líquido)
+  const withLiquid = _activeForm === 'aplic-insumos';
+  el.innerHTML = _inputRows.map((row, i) => withLiquid ? `
+    <div style="background:white;border:1px solid rgba(84,66,54,.1);border-radius:10px;padding:.7rem .85rem;margin-bottom:.6rem;">
+      <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.55rem;">
+        <select style="flex:1;background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
+                       padding:.6rem .65rem;font-size:.82rem;font-family:sans-serif;color:var(--brown);outline:none;"
+                id="fi-prod-${i}" onchange="window._fic(${i},'product_id',this.value)">${_bioOpts()}</select>
+        <button onclick="removeFoodInputRow(${i})"
+                style="background:none;border:none;color:var(--clay);font-size:1.25rem;cursor:pointer;padding:.05rem .3rem;line-height:1;flex-shrink:0;">×</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;">
+        <div>
+          <div style="font-size:.65rem;font-family:sans-serif;color:var(--tm);margin-bottom:.25rem;">Ingrediente activo</div>
+          <input type="number" step="0.01" min="0" placeholder="Cant."
+                 style="width:100%;background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
+                        padding:.6rem .65rem;font-size:.82rem;font-family:sans-serif;color:var(--brown);outline:none;"
+                 id="fi-qty-${i}" value="${row.qty}" oninput="window._fic(${i},'qty',this.value)">
+        </div>
+        <div>
+          <div style="font-size:.65rem;font-family:sans-serif;color:var(--tm);margin-bottom:.25rem;">Líquido total aplicado</div>
+          <input type="number" step="0.01" min="0" placeholder="Total"
+                 style="width:100%;background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
+                        padding:.6rem .65rem;font-size:.82rem;font-family:sans-serif;color:var(--brown);outline:none;"
+                 id="fi-liq-${i}" value="${row.total_liquid}" oninput="window._fic(${i},'total_liquid',this.value)">
+        </div>
+      </div>
+    </div>` : `
     <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem;">
       <select style="flex:1;background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
                      padding:.6rem .65rem;font-size:.82rem;font-family:sans-serif;color:var(--brown);outline:none;"
@@ -290,7 +318,7 @@ function _renderHarvestRows() {
   el.innerHTML = _harvestRows.map((row, i) => `
     <div style="background:white;border:1px solid rgba(84,66,54,.1);border-radius:10px;padding:.75rem .85rem;margin-bottom:.65rem;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.55rem;">
-        <span style="font-size:.68rem;font-family:sans-serif;color:var(--tm);text-transform:uppercase;letter-spacing:.07em;">Canasta ${i + 1}</span>
+        <span style="font-size:.68rem;font-family:sans-serif;color:var(--tm);text-transform:uppercase;letter-spacing:.07em;">Registro ${i + 1}</span>
         <button onclick="removeHarvestRow(${i})" style="background:none;border:none;color:var(--clay);font-size:.78rem;font-family:sans-serif;cursor:pointer;">Quitar</button>
       </div>
       <div class="fg" style="margin-bottom:.6rem;">
@@ -310,7 +338,7 @@ function _renderHarvestRows() {
         <select style="background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
                        padding:.6rem .6rem;font-size:.8rem;font-family:sans-serif;color:var(--brown);outline:none;"
                 id="hr-bed-${i}" onchange="window._fhr(${i},'bed_id',this.value)">
-          <option value="">— Cama (opcional) —</option>
+          <option value="">— Cama —</option>
         </select>
       </div>
       <div style="display:flex;gap:.5rem;">
@@ -430,11 +458,13 @@ async function _loadRecentHarvests() {
     el.innerHTML = harvests.slice(0, 5).map(h => {
       const crop = (_cats?.crops || []).find(c => c.id === h.crop_id);
       const area = (_cats?.areas || []).find(a => a.id === h.area_id);
+      const bed  = (_cats?.beds  || []).find(b => b.id === h.bed_id);
+      const loc  = [area?.name, bed?.code].filter(Boolean).join(' · ') || '—';
       return `<div style="background:white;border:1px solid rgba(84,66,54,.1);border-radius:10px;
                            padding:.7rem .9rem;margin-bottom:.5rem;display:flex;justify-content:space-between;align-items:center;">
         <div>
           <div style="font-size:.87rem;font-family:sans-serif;color:var(--brown);font-weight:500;">${crop?.name || '—'}</div>
-          <div style="font-size:.67rem;font-family:sans-serif;color:var(--tm);margin-top:.1rem;">${area?.name || '—'} · ${h.date}</div>
+          <div style="font-size:.67rem;font-family:sans-serif;color:var(--tm);margin-top:.1rem;">${loc} · ${h.date}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;margin-left:.8rem;">
           <div style="font-size:.88rem;font-family:sans-serif;color:var(--clay);font-weight:500;">${h.real_quantity}</div>
@@ -563,6 +593,9 @@ const FORMS = {
       <div id="apply-scope-content" style="margin-top:-.4rem;margin-bottom:.5rem;"></div>
       <div class="fg">
         <label>Insumos biológicos aplicados</label>
+        <div class="doc-note" style="margin-bottom:.6rem;">
+          Ej: 3 bombas de 18L con 1L de Emulsión de Pescado c/u → Ingrediente activo: <strong>3L</strong> · Líquido total aplicado: <strong>54L</strong>.
+        </div>
         <div id="food-input-rows" style="margin-top:.4rem;"></div>
         <button type="button" onclick="addFoodInputRow()" class="add-row-btn">+ Agregar insumo</button>
       </div>
@@ -657,13 +690,13 @@ const FORMS = {
     build: () => `
       <div class="fg"><label>Fecha</label><input type="date" id="f-fecha"></div>
       <div class="doc-note" style="margin-bottom:.9rem;">
-        🧺 Registrá <strong>una fila por canasta</strong>. Si cosechaste el mismo cultivo de dos áreas distintas,
-        usá canastas separadas y agregá una fila por cada una.
+        Agregá una fila por cada combinación de <strong>cultivo + área + cama</strong>. Si cosechaste el mismo
+        cultivo de camas o áreas distintas, agregá una fila separada por cada una.
       </div>
       <div class="fg">
         <label>Registro de cosecha</label>
         <div id="harvest-rows" style="margin-top:.4rem;"></div>
-        <button type="button" onclick="addHarvestRow()" class="add-row-btn">+ Agregar canasta</button>
+        <button type="button" onclick="addHarvestRow()" class="add-row-btn">+ Agregar registro</button>
       </div>
       ${_workersField()}
       <div class="fg"><label>Observaciones</label>${_aw('obs', 'Observaciones...')}</div>
@@ -822,7 +855,11 @@ export async function submitFoodForm() {
         const method = document.getElementById('f-method')?.value || null;
         const items  = _inputRows
           .filter(r => r.product_id && r.qty)
-          .map(r => ({ bio_product_id: r.product_id, quantity: parseFloat(r.qty) }));
+          .map(r => ({
+            bio_product_id: r.product_id,
+            quantity: parseFloat(r.qty),
+            total_liquid_quantity: r.total_liquid ? parseFloat(r.total_liquid) : null,
+          }));
         // Include specific beds in observations if scope = beds
         const bedNote = _applyScope === 'beds' && _applyBedRows.length
           ? `Camas: ${_applyBedRows.map(r => {
@@ -893,12 +930,13 @@ export async function submitFoodForm() {
       }
 
       case 'cosecha': {
-        const validRows = _harvestRows.filter(r => r.crop_id && r.area_id && r.qty && r.unit);
-        if (!validRows.length) throw new Error('Completá al menos una fila con cultivo, área, cantidad y unidad.');
+        const validRows = _harvestRows.filter(r => r.crop_id && r.area_id && r.bed_id && r.qty && r.unit);
+        if (!validRows.length) throw new Error('Completá al menos una fila con cultivo, área, cama, cantidad y unidad.');
         await Promise.all(validRows.map(r => _api('/api/food/harvests', 'POST', {
           date,
           crop_id: r.crop_id,
           area_id: r.area_id,
+          bed_id: r.bed_id,
           real_quantity: parseFloat(r.qty),
           unit: r.unit,
           performed_by: userId,
@@ -942,7 +980,7 @@ window._fhr = (i, key, val) => { if (_harvestRows[i]) _harvestRows[i][key] = val
 window._foodFilterBeds = (bedSelId, areaId) => {
   const sel = document.getElementById(bedSelId);
   if (!sel) return;
-  sel.innerHTML = _bedOptsByArea(areaId, bedSelId.includes('hr-') ? '— Cama (opcional) —' : '— Cama —');
+  sel.innerHTML = _bedOptsByArea(areaId, '— Cama —');
   sel.value = '';
 };
 

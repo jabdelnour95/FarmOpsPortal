@@ -295,11 +295,15 @@ CREATE TABLE public.input_applications (
 );
 
 -- TRIGGER: dispara salida de inventario en Biofábrica (ver sección 3.7)
+-- quantity = ingrediente activo del producto biológico (lo que se descuenta del inventario).
+-- total_liquid_quantity = volumen total de líquido aplicado en campo (activo + dilución),
+-- ej: 3 bombas de 18L con 1L de Emulsión c/u → quantity=3, total_liquid_quantity=54.
 CREATE TABLE public.input_application_items (
-  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  application_id    uuid NOT NULL REFERENCES public.input_applications(id) ON DELETE CASCADE,
-  bio_product_id    uuid NOT NULL REFERENCES public.bio_finished_products(id),
-  quantity          numeric(10,3) NOT NULL
+  id                     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  application_id         uuid NOT NULL REFERENCES public.input_applications(id) ON DELETE CASCADE,
+  bio_product_id         uuid NOT NULL REFERENCES public.bio_finished_products(id),
+  quantity               numeric(10,3) NOT NULL,
+  total_liquid_quantity  numeric(10,3)
 );
 
 -- ── Mantenimiento de área ─────────────────────────────────────────────────────
@@ -362,11 +366,15 @@ CREATE TABLE public.kitchen_order_items (
 );
 
 -- ── Cosechas ──────────────────────────────────────────────────────────────────
+-- D-006 (revisado): trazabilidad por área + cama, no por canasta — el manejo de
+-- canastas es operativo en campo y no se registra en el app. Una fila por
+-- combinación de cultivo + área + cama.
 CREATE TABLE public.harvests (
   id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   date             date NOT NULL,
   crop_id          uuid NOT NULL REFERENCES public.crops(id),
   area_id          uuid NOT NULL REFERENCES public.productive_areas(id),
+  bed_id           uuid NOT NULL REFERENCES public.beds(id),
   planting_id      uuid REFERENCES public.plantings(id),   -- opcional, trazabilidad a siembra
   real_quantity    numeric(10,3) NOT NULL,
   unit             text NOT NULL,

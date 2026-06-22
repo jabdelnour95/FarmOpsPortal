@@ -118,11 +118,15 @@ Para correr el app localmente: `python -m http.server 8080` desde este directori
 - [x] **Reportes movidos a cada sub-galería** — tile Admin-only dentro de Finca y Operaciones (no en el home principal)
 - [x] **Módulo Producción de Alimentos construido** — `js/modules/food.js` — pantalla `#food-screen` con galería de 6 formularios activos
 - [x] **Worker actualizado** — `CATALOG_ORDER` para ordenar camas por `code.asc`; handler especial para `POST /food/availability` con items en cascada; `POST /catalog/crops` permitido para no-admins; `GET /api/farm-workers` para dropdown de participantes — Version ID `69f598de-efca-48ef-98c8-adbeb52b206e`
+- [x] **Cosecha: trazabilidad por área + cama (ya no por canasta)** — `bed_id` obligatorio en el form y en el payload; columna `bed_id uuid NOT NULL` agregada a `harvests` en Supabase (datos de prueba viejos borrados primero por la FK con `internal_invoices_food`)
+- [x] **Aplicar Insumos: ingrediente activo vs. líquido total** — columna `total_liquid_quantity` agregada a `input_application_items`; UI con dos campos por insumo (D-010)
+- [x] **Tabla real de cosechas confirmada: `harvests`** (no `harvest_records`) — corregido el mapping en `FOOD_TABLE` (`worker/worker.js:382`) y redesplegado — Version ID `d152fa42-f19a-4cdf-998f-dd18bbc41317`
 
 ### Próximos pasos (en orden)
 - [x] **Tabla `farm_workers` creada en Supabase** — activa con datos del equipo.
 - [x] **Participantes: multi-select dropdown implementado** — Worker con `GET /api/farm-workers`; `_workersField()` en food.js; `_getParticipants()` para el submit; los nombres van al campo `observations` como "Participantes: Ana, Carlos"
-- [ ] **Verificar nombres de tablas en Worker** — el Worker usa `food_production_lots` / `harvest_records`; el TDD define `plantings` / `harvests`. Confirmar nombres reales en Supabase antes de testear submit.
+- [ ] **Verificar mapping de `plantings`** — el Worker hardcodea la tabla `food_production_lots` para el resource `plantings` (no usa `FOOD_TABLE`); el TDD define `plantings`. Mismo tipo de mismatch que ya se encontró y corrigió en `harvests` — confirmar nombre real en Supabase antes de testear Registrar Siembra.
+- [ ] **Verificar mapping de `invoices`** — `FOOD_TABLE.invoices` apunta a `food_invoices`; el TDD define `internal_invoices_food`. No usado todavía por el frontend, pero corregir antes de construir la vista de facturas.
 - [ ] **Módulo Biofábrica** — pantalla + formularios; requiere sesión de discovery
 - [ ] **Módulo Vivero** — pantalla + formularios; requiere sesión de discovery
 - [ ] **Implementar RLS policies en Supabase** — control de acceso por rol y departamento (antes del go-live)
@@ -207,10 +211,11 @@ Documentadas en detalle en `Docs/TDD.md` sección 9. Resumen:
 | D-003 | Pedidos de cocina por semana | Múltiples permitidos (campo `label` opcional) |
 | D-004 | Inventario de contenedores del Vivero | Por tipo de contenedor, no por batch |
 | D-005 | Participantes en formularios de Producción | Multi-select dropdown desde tabla `farm_workers`; temporalmente texto libre en `observations` |
-| D-006 | Cosecha: trazabilidad por canasta | Una fila por canasta (crop + área + cama + kg). Un registro en `harvest_records` por fila. |
+| D-006 | Cosecha: trazabilidad por área/cama (revisado — ya no por canasta) | Una fila por combinación cultivo + área + cama. Las canastas se manejan operativamente en campo, no en el app. Un registro en `harvest_records` por fila; `bed_id` ahora obligatorio. |
 | D-007 | Preparar Cama con múltiples camas | Filas dinámicas; un `bed_preparations` record por cama via `Promise.all()` |
 | D-008 | Scope de Aplicar Insumos / Mantenimiento | Toggle "área completa" vs "camas específicas" — cambia la UI sin cambiar el schema |
 | D-009 | Ordenamiento de camas en catálogo | `code.asc` (no `name.asc`) — corregido en Worker via `CATALOG_ORDER` map |
+| D-010 | Aplicar Insumos: ingrediente activo vs. líquido total | Se registran ambos por insumo: `quantity` (ingrediente activo, lo que descuenta inventario de Biofábrica) y `total_liquid_quantity` (volumen total aplicado en campo, solo informativo) |
 
 ### Patrones de `food.js`
 
