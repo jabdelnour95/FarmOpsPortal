@@ -54,3 +54,12 @@ En Aplicar Insumos:
 
 En Registrar Cosecha:
 - Veo que separaste el registro por canastas. Eso está bien. Pero en vez de separarlo por canastas, me gustaría separarlo por área productiva. Es decir, cada registro debe de llevar un campo para registrar área y otro para registrar cama. El tema de las canastas de maneja operativamente en campo fuera del app. 
+
+
+Agregar opcion para cambiar contraseña, se le olvido la contraseña
+
+Opcion de agregar un nuevo cultivo y editar los que ya existen (cambiar precio o unidad de medida por ejemplo), igual con los bioinsumos. Para esto, debería de agregar módulos extra para usuarios Admin.
+
+
+
+
