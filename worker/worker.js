@@ -380,7 +380,7 @@ const FOOD_TABLE = {
   'propagation-orders': 'propagation_orders',
   'area-maintenance': 'area_maintenance',
   harvests: 'harvests',
-  invoices: 'food_invoices', // TODO: confirmar si la tabla real es 'internal_invoices_food' (ver TDD 3.3)
+  invoices: 'internal_invoices_food',
   'kitchen-orders': 'kitchen_orders',
   availability: 'weekly_availability',
 };
@@ -413,11 +413,11 @@ async function handleFood(request, env, auth) {
   // ── plantings (lot_id generado por trigger en DB)
   if (resource === 'plantings') {
     if (request.method === 'GET') {
-      const res = await sbGet(env, 'food_production_lots', 'select=*,crops(name),beds(code)&order=planting_date.desc');
+      const res = await sbGet(env, 'plantings', 'select=*,crops(name),beds(code)&order=date.desc');
       return proxySb(request, res);
     }
     if (request.method === 'POST') {
-      const res = await sbPost(env, 'food_production_lots', await request.json());
+      const res = await sbPost(env, 'plantings', await request.json());
       return proxySb(request, res);
     }
   }

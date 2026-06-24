@@ -183,20 +183,20 @@ function _renderInputRows() {
       <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.55rem;">
         <select style="flex:1;background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
                        padding:.6rem .65rem;font-size:.82rem;font-family:sans-serif;color:var(--brown);outline:none;"
-                id="fi-prod-${i}" onchange="window._fic(${i},'product_id',this.value)">${_bioOpts()}</select>
+                id="fi-prod-${i}" onchange="window._fic(${i},'product_id',this.value); window._foodBioUnit(${i})">${_bioOpts()}</select>
         <button onclick="removeFoodInputRow(${i})"
                 style="background:none;border:none;color:var(--clay);font-size:1.25rem;cursor:pointer;padding:.05rem .3rem;line-height:1;flex-shrink:0;">×</button>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;">
+      <div id="fi-grid-${i}" style="display:grid;grid-template-columns:1fr;gap:.5rem;">
         <div>
-          <div style="font-size:.65rem;font-family:sans-serif;color:var(--tm);margin-bottom:.25rem;">Ingrediente activo</div>
+          <div style="font-size:.65rem;font-family:sans-serif;color:var(--tm);margin-bottom:.25rem;" id="fi-lbl-qty-${i}">Ingrediente activo</div>
           <input type="number" step="0.01" min="0" placeholder="Cant."
                  style="width:100%;background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
                         padding:.6rem .65rem;font-size:.82rem;font-family:sans-serif;color:var(--brown);outline:none;"
                  id="fi-qty-${i}" value="${row.qty}" oninput="window._fic(${i},'qty',this.value)">
         </div>
-        <div>
-          <div style="font-size:.65rem;font-family:sans-serif;color:var(--tm);margin-bottom:.25rem;">Líquido total aplicado</div>
+        <div id="fi-liq-wrap-${i}" style="display:none;">
+          <div style="font-size:.65rem;font-family:sans-serif;color:var(--tm);margin-bottom:.25rem;" id="fi-lbl-liq-${i}">Líquido total aplicado</div>
           <input type="number" step="0.01" min="0" placeholder="Total"
                  style="width:100%;background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
                         padding:.6rem .65rem;font-size:.82rem;font-family:sans-serif;color:var(--brown);outline:none;"
@@ -207,18 +207,19 @@ function _renderInputRows() {
     <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem;">
       <select style="flex:1;background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
                      padding:.6rem .65rem;font-size:.82rem;font-family:sans-serif;color:var(--brown);outline:none;"
-              id="fi-prod-${i}" onchange="window._fic(${i},'product_id',this.value)">${_bioOpts()}</select>
+              id="fi-prod-${i}" onchange="window._fic(${i},'product_id',this.value); window._foodBioUnit(${i})">${_bioOpts()}</select>
       <input type="number" step="0.01" min="0" placeholder="Cant."
              style="width:72px;background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
                     padding:.6rem .5rem;font-size:.82rem;font-family:sans-serif;color:var(--brown);
                     outline:none;text-align:center;"
              id="fi-qty-${i}" value="${row.qty}" oninput="window._fic(${i},'qty',this.value)">
+      <span id="fi-unit-${i}" style="width:34px;flex-shrink:0;font-size:.74rem;font-family:sans-serif;color:var(--tm);text-align:center;"></span>
       <button onclick="removeFoodInputRow(${i})"
               style="background:none;border:none;color:var(--clay);font-size:1.25rem;cursor:pointer;padding:.05rem .3rem;line-height:1;flex-shrink:0;">×</button>
     </div>`).join('');
   _inputRows.forEach((row, i) => {
     const s = document.getElementById(`fi-prod-${i}`);
-    if (s && row.product_id) s.value = row.product_id;
+    if (s && row.product_id) { s.value = row.product_id; window._foodBioUnit(i); }
   });
 }
 
@@ -758,7 +759,10 @@ export function openFoodForm(type) {
     ${def.build()}
     <button class="btn-sub" id="food-btn-sub" onclick="submitFoodForm()">Guardar registro</button>
     <div class="fnote">Los datos se guardan en la base de datos de Tierramor.</div>
-    <div class="ok-msg" id="food-ok"><p id="food-ok-txt">✅ Guardado correctamente.</p></div>
+    <div class="ok-msg" id="food-ok">
+      <p id="food-ok-txt">✅ Guardado correctamente.</p>
+      <button class="btn-sub green" style="margin-top:.7rem;" onclick="openFoodForm('${type}')">Agregar otro registro</button>
+    </div>
     <div id="food-err" style="display:none;background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.3);
                               border-radius:10px;padding:1rem;text-align:center;margin-top:.9rem;">
       <p style="font-size:.82rem;font-family:sans-serif;color:#c0392b;" id="food-err-txt"></p>
@@ -1028,6 +1032,32 @@ window._foodAvailUnit = (i) => {
     const u = document.getElementById(`av-unit-${i}`);
     if (u) { u.value = crop.harvest_unit; u.removeAttribute('readonly'); }
     if (_availRows[i]) _availRows[i].unit = crop.harvest_unit;
+  }
+};
+
+// Auto-fill unit from bio_finished_products.unit (Preparar Cama / Aplicar Insumos)
+window._foodBioUnit = (i) => {
+  const id  = document.getElementById(`fi-prod-${i}`)?.value;
+  const bio = (_cats?.bio || []).find(b => b.id === id);
+  const unit = bio?.unit || '';
+  const isLiquid = unit.toLowerCase() === 'l';
+
+  const unitEl = document.getElementById(`fi-unit-${i}`);
+  if (unitEl) unitEl.textContent = unit;
+  const lblQty = document.getElementById(`fi-lbl-qty-${i}`);
+  if (lblQty) lblQty.textContent = unit ? `Ingrediente activo (${unit})` : 'Ingrediente activo';
+  const lblLiq = document.getElementById(`fi-lbl-liq-${i}`);
+  if (lblLiq) lblLiq.textContent = unit ? `Líquido total aplicado (${unit})` : 'Líquido total aplicado';
+
+  // El campo de líquido total sólo aplica a insumos que se diluyen en agua (medidos en L)
+  const grid = document.getElementById(`fi-grid-${i}`);
+  const liqWrap = document.getElementById(`fi-liq-wrap-${i}`);
+  if (grid) grid.style.gridTemplateColumns = isLiquid ? '1fr 1fr' : '1fr';
+  if (liqWrap) liqWrap.style.display = isLiquid ? '' : 'none';
+  if (!isLiquid) {
+    const liqInput = document.getElementById(`fi-liq-${i}`);
+    if (liqInput) liqInput.value = '';
+    if (_inputRows[i]) _inputRows[i].total_liquid = '';
   }
 };
 
