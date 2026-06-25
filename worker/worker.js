@@ -536,7 +536,7 @@ async function handleBio(request, env, auth) {
         const inputs = await iRes.json();
         const sRess = await Promise.all(
           inputs.map(i =>
-            sbGet(env, 'v_bio_raw_material_stock', `raw_material_id=eq.${i.raw_material_id}&select=raw_material_id,name,available_quantity`),
+            sbGet(env, 'v_bio_raw_material_stock', `id=eq.${i.raw_material_id}&select=id,name,current_stock`),
           ),
         );
         return [inputs, ...sRess];
@@ -547,8 +547,8 @@ async function handleBio(request, env, auth) {
       const warnings = inputsRes
         .map((input, idx) => {
           const stock = stockRows[idx][0];
-          if (stock && stock.available_quantity < input.quantity) {
-            return { raw_material_id: input.raw_material_id, name: stock.name, required: input.quantity, available: stock.available_quantity };
+          if (stock && stock.current_stock < input.quantity) {
+            return { raw_material_id: input.raw_material_id, name: stock.name, required: input.quantity, available: stock.current_stock };
           }
           return null;
         })
@@ -568,11 +568,11 @@ async function handleBio(request, env, auth) {
   // ── outputs
   if (resource === 'outputs') {
     if (request.method === 'GET') {
-      const res = await sbGet(env, 'bio_product_outputs', 'select=*,bio_finished_products(name)&order=date.desc');
+      const res = await sbGet(env, 'bio_finished_product_outputs', 'select=*,bio_finished_products(name)&order=date.desc');
       return proxySb(request, res);
     }
     if (request.method === 'POST') {
-      const res = await sbPost(env, 'bio_product_outputs', await request.json());
+      const res = await sbPost(env, 'bio_finished_product_outputs', await request.json());
       return proxySb(request, res);
     }
   }
