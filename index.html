@@ -235,9 +235,9 @@ body{font-family:'Cormorant',Georgia,serif;background:var(--cream);color:var(--b
       <div class="tile-icon finca">🥬</div>
       <div class="tile-body"><div class="tile-name">Producción de Alimentos</div><div class="tile-desc">Siembras, cosechas y pedidos de cocina</div><span class="tile-badge active">Activo</span></div>
     </div>
-    <div class="dept-tile" onclick="openFincaModule('biofabrica')">
+    <div class="dept-tile" onclick="openBio()">
       <div class="tile-icon finca">🧪</div>
-      <div class="tile-body"><div class="tile-name">Biofábrica</div><div class="tile-desc">Producción de insumos biológicos</div><span class="tile-badge soon">En construcción</span></div>
+      <div class="tile-body"><div class="tile-name">Biofábrica</div><div class="tile-desc">Producción de insumos biológicos</div><span class="tile-badge active">Activo</span></div>
     </div>
     <div class="dept-tile" onclick="openFincaModule('vivero')">
       <div class="tile-icon finca">🌿</div>
@@ -332,6 +332,51 @@ body{font-family:'Cormorant',Georgia,serif;background:var(--cream);color:var(--b
     <div class="divider"></div>
     <div class="glbl">Últimas cosechas</div>
     <div id="food-recent-body">
+      <div style="font-size:.78rem;font-family:sans-serif;color:var(--tm);font-style:italic;">Cargando...</div>
+    </div>
+  </div>
+</div>
+
+<div id="bio-screen" class="screen">
+  <div class="hdr">
+    <button class="btn-bk" onclick="nav('finca-home')">←</button>
+    <span class="hdr-t">Biofábrica</span>
+    <button class="btn-out" onclick="logout()">Salir</button>
+  </div>
+  <div class="food-body">
+    <div id="bio-low-stock" style="display:none;background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.3);
+                                   border-radius:10px;padding:.75rem .9rem;margin-bottom:.9rem;
+                                   font-size:.78rem;font-family:sans-serif;color:#c0392b;"></div>
+    <div class="glbl" style="margin-top:.2rem;">Registrar actividad</div>
+    <div class="grid">
+      <div class="gcard" onclick="openBioForm('entrada')">
+        <div class="ct">🧫 Entrada de Materia Prima</div>
+        <div class="cd">Registrar recepción de insumos</div>
+      </div>
+      <div class="gcard" onclick="openBioForm('abrir-lote')">
+        <div class="ct">🏭 Abrir Lote de Producción</div>
+        <div class="cd">Iniciar un nuevo lote de producción</div>
+      </div>
+      <div class="gcard" onclick="openBioBatchPicker()">
+        <div class="ct">✅ Cerrar Lote de Producción</div>
+        <div class="cd">Finalizar un lote en proceso</div>
+      </div>
+      <div class="gcard" onclick="openBioForm('salida')">
+        <div class="ct">📤 Registrar Salida</div>
+        <div class="cd">Despacho interno o venta externa</div>
+      </div>
+      <div class="gcard" onclick="openBioInventory('raw')">
+        <div class="ct">📦 Inventario de Materias Primas</div>
+        <div class="cd">Stock actual y alertas de mínimo</div>
+      </div>
+      <div class="gcard" onclick="openBioInventory('finished')">
+        <div class="ct">🧪 Inventario de Producto Terminado</div>
+        <div class="cd">Stock disponible de bioinsumos</div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="glbl">Últimos lotes</div>
+    <div id="bio-recent-body">
       <div style="font-size:.78rem;font-family:sans-serif;color:var(--tm);font-style:italic;">Cargando...</div>
     </div>
   </div>

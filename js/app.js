@@ -13,6 +13,9 @@ import { openFood, openFoodForm, submitFoodForm,
          addPrepBedRow, removePrepBedRow,
          addApplyBedRow, removeApplyBedRow,
          addHarvestRow, removeHarvestRow } from './modules/food.js';
+import { openBio, openBioForm, submitBioForm,
+         addBatchInputRow, removeBatchInputRow,
+         openBioBatchPicker, openBioInventory } from './modules/bio.js';
 
 // Expose to HTML event handlers (onclick attributes) and cross-module calls
 Object.assign(window, {
@@ -32,6 +35,10 @@ Object.assign(window, {
   addPrepBedRow, removePrepBedRow,
   addApplyBedRow, removeApplyBedRow,
   addHarvestRow, removeHarvestRow,
+  // Biofactory module
+  openBio, openBioForm, submitBioForm,
+  addBatchInputRow, removeBatchInputRow,
+  openBioBatchPicker, openBioInventory,
   // Internal bindings used by navigation.js to avoid circular imports
   _openChecklistMenu: openChecklistMenu,
   _openInventarios:   openInventarios,

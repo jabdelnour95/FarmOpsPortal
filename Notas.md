@@ -60,6 +60,8 @@ Agregar opcion para cambiar contraseña, se le olvido la contraseña
 
 Opcion de agregar un nuevo cultivo y editar los que ya existen (cambiar precio o unidad de medida por ejemplo), igual con los bioinsumos. Para esto, debería de agregar módulos extra para usuarios Admin.
 
+Agregar un modulo que me permita ver las ventas - filtrable por internas vs externas, cliente, producto, vivero vs biofabrica, etc.
+
 
 
 

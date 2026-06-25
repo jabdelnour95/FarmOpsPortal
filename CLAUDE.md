@@ -91,7 +91,8 @@ Para correr el app localmente: `python -m http.server 8080` desde este directori
 │       ├── forms.js            ← Formularios de reportes Ops
 │       ├── manuals.js          ← Manuales de Limpieza y Mantenimiento
 │       ├── reports.js          ← Vista de reportes (Admin)
-│       └── food.js             ← Módulo Producción de Alimentos — 6 formularios completos
+│       ├── food.js             ← Módulo Producción de Alimentos — 6 formularios completos
+│       └── bio.js              ← Módulo Biofábrica — entradas, lotes, salidas, inventarios
 ```
 
 ---
@@ -126,6 +127,15 @@ Para correr el app localmente: `python -m http.server 8080` desde este directori
 - [x] **Botón "Agregar otro registro"** en el mensaje de éxito de los 6 formularios de Producción de Alimentos — reabre el mismo formulario limpio (`openFoodForm(type)`) sin volver a la galería
 - [x] **Unidad de medida auto-completada en insumos biológicos** (Preparar Cama / Aplicar Insumos) — al elegir un bioinsumo del dropdown, se muestra su `bio_finished_products.unit` junto al campo de cantidad (`window._foodBioUnit(i)`)
 - [x] **Aplicar Insumos: campo "Líquido total aplicado" condicional** — sólo se muestra cuando el bioinsumo elegido se mide en `L` (líquido diluido en agua); se oculta y limpia automáticamente para insumos en `kg`/`Saco`
+- [x] **Módulo Biofábrica construido** — `js/modules/bio.js` — pantalla `#bio-screen` con 4 formularios (Entrada de Materia Prima, Abrir Lote, Cerrar Lote, Registrar Salida) + 2 vistas de inventario de solo lectura (materias primas con alertas de stock mínimo, producto terminado). El backend (`handleBio()` en `worker.js`) ya estaba completo de una sesión anterior; este trabajo fue principalmente frontend.
+- [x] **Dos bugs corregidos en `handleBio()`** — (1) `outputs` consultaba la tabla `bio_product_outputs`, que no existe; la tabla real es `bio_finished_product_outputs` (`worker.js:571,575`). (2) La validación de stock al cerrar lote (`PATCH /api/bio/batches/:id/close`, D-001) filtraba/seleccionaba columnas inexistentes (`raw_material_id`, `available_quantity`) en la vista `v_bio_raw_material_stock`; las columnas reales son `id` y `current_stock` (`worker.js:539,550`) — sin este fix, la advertencia de stock insuficiente nunca funcionaba. Redesplegado — Version ID `22641729-730d-41d0-aadb-0ae25184adc5`.
+- [x] **Cerrar Lote de Producción: flujo en dos pasos** — `openBioBatchPicker()` lista los lotes `in_progress` (filtrado client-side desde `GET /api/bio/batches`, sin endpoint nuevo); al elegir uno, `_openBioCloseForm(batch)` reemplaza el contenido de `#fbody` con el formulario de cierre. La respuesta de `/close` (`{ warning, items, batch }`) muestra un aviso ámbar no bloqueante si el stock de materias primas es insuficiente (D-001).
+- [x] **Responsable de Biofábrica vía dropdown, no texto libre** — `performed_by`/`responsible_id` son `uuid REFERENCES profiles(id)` en el schema, a diferencia del patrón de "Participantes" en texto libre de `food.js`. El dropdown (`_performedByOpts()`) se alimenta de `farm_workers` filtrado a filas con `profile_id` no nulo, con fallback automático a "[Tu nombre] (yo)" si el usuario logueado todavía no está vinculado.
+- [x] **`farm_workers.profile_id` agregado en Supabase** (Javier corrió el `ALTER TABLE ... ADD COLUMN profile_id uuid REFERENCES profiles(id)`) y vinculado para el perfil de Javier. Pendiente vincular al resto del equipo cuando tengan login real (ver Próximos pasos).
+- [x] **Catálogo `bio_raw_materials`: creación inline admin-only** — opción "── Nueva materia prima ──" en el dropdown de Entrada, visible solo si `profile.role === 'admin'` (el catálogo de materias primas estaba vacío; `bio_finished_products` ya tenía 31 ítems poblados de antes).
+- [x] **Tile de Biofábrica activado en `finca-home`** — `onclick="openBio()"` directo (mismo patrón que `openFood()`, evita dependencia circular), badge cambiado de "En construcción" a "Activo".
+- [x] **Probado end-to-end con login real** — entrada de materia prima, apertura y cierre de lote (`BIO-2026-0001`), registro de salida interna y externa, inventarios de materias primas y producto terminado — todo contra el Worker y Supabase de producción.
+- [x] **Ajustes de UX post-testing** — label "Costo (₡)" en Entrada; unidad de medida auto-mostrada junto a "Cantidad obtenida" en Cerrar Lote (tomada de `bio_finished_products.unit` del lote); en Registrar Salida, stock disponible mostrado automáticamente al elegir el producto (`GET /api/inventory/bio-finished`, cacheado por apertura de formulario) y campo "Notas" agregado (requiere columna `observations` en `bio_finished_product_outputs`, agregada por Javier vía `ALTER TABLE`).
 
 ### Próximos pasos (en orden)
 - [x] **Tabla `farm_workers` creada en Supabase** — activa con datos del equipo.
@@ -135,7 +145,8 @@ Para correr el app localmente: `python -m http.server 8080` desde este directori
 - [ ] **Probar Registrar Siembra end-to-end** en el app (login real, no las credenciales legacy) — ya hay `crops`, `productive_areas` y camas de prueba en SAF Basecamp para hacerlo.
 - [ ] **Poblar `beds` reales para el resto de las áreas** — pendiente, falta el dato fuente.
 - [x] **Tabla `bio_finished_products` poblada** — 31 bioinsumos desde Google Drive "Biofactory Financials.xlsx" (hoja "Unit Economics"), usando `Sell Price` (USD, sin convertir a colones) como `internal_price`. `internal_price` se cambió a nullable (`ALTER COLUMN ... DROP NOT NULL`, corrido por Javier) porque 5 productos no tienen precio de venta definido aún: Supermagro con boñiga, Caldo Bordelés, Sílico Sulfo Cúprico, Protector zinc, Repelente de insectos — insertados activos con `internal_price: null`, completar cuando se definan precios. Se excluyó la fila "Biol Promedio" (no es un producto real, es un agregado de la hoja).
-- [ ] **Módulo Biofábrica** — pantalla + formularios; requiere sesión de discovery
+- [ ] **Vincular `farm_workers.profile_id` para el resto del equipo** (Kennedy, etc.) cuando tengan login real en Supabase — hasta entonces, el dropdown de "Responsable" en Biofábrica solo ofrece al usuario logueado.
+- [ ] **Poblar `bio_raw_materials`** — catálogo vacío; se puede ir poblando desde el formulario de Entrada (opción admin-only "Nueva materia prima") o por lote vía Supabase si Javier consigue una fuente de datos.
 - [ ] **Módulo Vivero** — pantalla + formularios; requiere sesión de discovery
 - [ ] **Implementar RLS policies en Supabase** — control de acceso por rol y departamento (antes del go-live)
 - [ ] **Crear usuarios de Supabase para el equipo** — justo antes del go-live, cuando los módulos estén listos
@@ -150,7 +161,7 @@ Para correr el app localmente: `python -m http.server 8080` desde este directori
 | Departamento | Estado en portal | Flujo mapeado | Schema Supabase |
 |---|---|---|---|
 | Producción de Alimentos | ✅ Activo — 6 formularios en `#food-screen` | ✅ | ✅ En Supabase |
-| Biofábrica | 🔄 Tile placeholder en finca-home | ✅ | ✅ En Supabase |
+| Biofábrica | ✅ Activo — 4 formularios + 2 inventarios en `#bio-screen` | ✅ | ✅ En Supabase |
 | Vivero | 🔄 Tile placeholder en finca-home | ✅ | ✅ En Supabase |
 
 ### Ops Portal — Proyecto separado (Nicolás Salas)
@@ -178,7 +189,13 @@ Cada departamento nuevo requiere una sesión de discovery de 20–30 min antes d
         │     │     ├─→ form: mantenimiento
         │     │     ├─→ form: disponibilidad
         │     │     └─→ form: cosecha
-        │     ├─→ Biofábrica               [placeholder → #con-screen]
+        │     ├─→ #bio-screen (Biofábrica) ← openBio() directo en onclick
+        │     │     ├─→ form: entrada
+        │     │     ├─→ form: abrir-lote
+        │     │     ├─→ openBioBatchPicker() → form: cerrar-lote (dos pasos en #fs)
+        │     │     ├─→ form: salida
+        │     │     ├─→ inventario: materias primas (solo lectura)
+        │     │     └─→ inventario: producto terminado (solo lectura)
         │     ├─→ Vivero                   [placeholder → #con-screen]
         │     └─→ Reportes (admin)         [placeholder → #con-screen]
         ├─→ #ops-home (sub-galería Operaciones)
@@ -190,7 +207,7 @@ Cada departamento nuevo requiere una sesión de discovery de 20–30 min antes d
         └─→ Experiencias [tile deshabilitado — Próximamente]
 ```
 
-**Nota:** El tile de Producción de Alimentos en `finca-home` llama `openFood()` directamente (no `openFincaModule('produccion')`). Esto evita una dependencia circular entre `navigation.js` y `food.js`.
+**Nota:** El tile de Producción de Alimentos en `finca-home` llama `openFood()` directamente (no `openFincaModule('produccion')`). Esto evita una dependencia circular entre `navigation.js` y `food.js`. El tile de Biofábrica sigue el mismo patrón con `openBio()`.
 
 ### Visibilidad de tiles por rol
 
@@ -233,6 +250,15 @@ Documentadas en detalle en `Docs/TDD.md` sección 9. Resumen:
 - **Window bindings:** `_fic` / `_fac` (add/remove input rows), `_fpb` / `_fab` (prep/apply bed rows), `_fhr` (harvest rows), `_foodFilterBeds`, `_foodApplyScope`, `_foodMaintScope`, `_foodNewCropToggle`, `_foodHarvestUnit`, `_foodAvailUnit`, `_foodBioUnit`, `_foodApplyScopeAreaChanged`.
 - **`_foodBioUnit(i)`:** auto-completa la unidad de `bio_finished_products` en las filas de insumos (Preparar Cama / Aplicar Insumos) y, en Aplicar Insumos, muestra/oculta el campo "Líquido total aplicado" (`fi-liq-wrap-${i}`) según si la unidad es `L`; limpia el valor al ocultarlo para no enviar datos obsoletos.
 - **Submit multi-registro:** `Promise.all(rows.map(row => _api(...)))` — una llamada al Worker por fila.
+
+### Patrones de `bio.js`
+
+- **Estado de módulo:** `_cats` (`{ rawMaterials, finishedProducts, workers }`), `_batches` (cache de `GET /api/bio/batches`), `_batchInputRows` (filas de Abrir Lote), `_closingBatch` (lote elegido en el picker de Cerrar Lote), `_finishedStockCache` (stock de producto terminado, refrescado cada vez que se abre Registrar Salida).
+- **Sin catálogo de geografía:** a diferencia de `food.js`, Biofábrica no necesita `beds`/`areas`/`crops` — es autocontenido.
+- **`_performedByOpts()` / `_selectPerformedByDefault()`:** dropdown de responsable sobre `farm_workers` filtrado a `profile_id` no nulo; si el usuario logueado no está en esa lista, se agrega una opción "[nombre] (yo)" con su propio `id` para no dejar el formulario sin opciones válidas. `created_by` siempre es el usuario logueado (autoría real de quien registra); `performed_by`/`responsible_id` es lo que elige el dropdown (quien ejecutó la tarea).
+- **Cascada de lote:** `abrir-lote` hace un solo `POST /api/bio/batches` con `inputs: [...]` (el Worker crea el lote y las filas de `bio_production_batch_inputs` en cascada) — a diferencia de `prep-cama` en `food.js`, que hace `Promise.all` de un POST por fila porque cada fila es una cama distinta; aquí todas las filas pertenecen a un solo lote.
+- **Cerrar Lote (dos pasos sin `FORMS[type]`):** `openBioBatchPicker()` lista lotes `in_progress`; `_openBioCloseForm(batch)` reemplaza `#fbody` con el formulario real. No usa el objeto `FORMS` porque el batch elegido es estado de navegación, no una definición estática de formulario.
+- **Creación inline de catálogo admin-only:** mismo patrón `__new__` que `_cropOpts()` en `food.js`, pero condicionado a `state.currentUser?.profile?.role === 'admin'` porque `handleCatalogs()` en el Worker solo permite POST de no-admins sobre `crops` (no sobre `bio-raw-materials`).
 
 ---
 
