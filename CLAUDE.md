@@ -136,6 +136,10 @@ Para correr el app localmente: `python -m http.server 8080` desde este directori
 - [x] **Tile de Biofábrica activado en `finca-home`** — `onclick="openBio()"` directo (mismo patrón que `openFood()`, evita dependencia circular), badge cambiado de "En construcción" a "Activo".
 - [x] **Probado end-to-end con login real** — entrada de materia prima, apertura y cierre de lote (`BIO-2026-0001`), registro de salida interna y externa, inventarios de materias primas y producto terminado — todo contra el Worker y Supabase de producción.
 - [x] **Ajustes de UX post-testing** — label "Costo (₡)" en Entrada; unidad de medida auto-mostrada junto a "Cantidad obtenida" en Cerrar Lote (tomada de `bio_finished_products.unit` del lote); en Registrar Salida, stock disponible mostrado automáticamente al elegir el producto (`GET /api/inventory/bio-finished`, cacheado por apertura de formulario) y campo "Notas" agregado (requiere columna `observations` en `bio_finished_product_outputs`, agregada por Javier vía `ALTER TABLE`).
+- [x] **Discovery de Vivero ya estaba hecho** — encontrado `Workflows/workflow_vivero_en.html` (sin trackear en git, generado 2026-06-09), diagrama Mermaid completo de 4 fases (entradas de materia prima → sustrato/llenado de contenedores → ciclo de vida del lote → salidas/ventas), mismo patrón que `workflow_biofabrica_en.html`. El TDD (`Docs/TDD.md` sección 3.5) y el backend del Worker (`handleNursery()`) también ya existían de una sesión anterior que nunca se reflejó en este archivo.
+- [x] **Bugs de mapping de tablas corregidos en `handleNursery()`** — el Worker usaba nombres de tabla inventados (`nursery_lots`, `nursery_substrate_batches`, `nursery_graduations`, etc.) que nunca existieron en Supabase; confirmado contra el schema real (PostgREST OpenAPI) que las tablas reales son `plant_lots`, `substrate_batches`, `germination_tracking`, `establishment_counts`, `lot_maintenance`, `plant_counts`, `lot_graduations`, `plant_lot_outputs`, `quotations`, `quotation_items`, `container_fills`. También se corrigieron columnas de orden (`date_started`→`date_start`, `tracking_date`/`count_date`/`graduation_date`/`output_date`→`date`) y se agregó la cascada de `quotation_items` en el POST de cotizaciones (no existía). Redesplegado — Version ID `9c184eb3-67c0-4c9e-89cc-7119b5c2d009`.
+- [x] **Módulo Vivero construido** — `js/modules/nursery.js` (pantalla `#nursery-screen`) — Materias Primas y Sustrato (Entrada de MP, Preparar Sustrato, Llenar Bolsas/Macetas), Lotes de Plantas (Crear Lote, Gestionar Lote con picker + detalle + sub-acciones condicionadas por estado: seguimiento de germinación, conteo de establecimiento, mantenimiento, conteo de plantas vivas, graduación, salida), Cotizaciones (nueva cotización con ítems multi-línea, ver cotizaciones con aceptar/rechazar), 3 inventarios de solo lectura (materias primas, sustratos, contenedores). Tile de Vivero activado en `finca-home` (`onclick="openVivero()"`, badge "Activo").
+- [x] **Patrón de trazabilidad por entrada específica en sustrato** — a diferencia de Biofábrica (que descuenta de `bio_raw_materials` genérico), `substrate_batch_components.raw_material_entry_id` referencia una entrada específica de `nursery_raw_material_entries` (un "grupo" recibido en una fecha). El formulario de Preparar Sustrato pide primero la materia prima y luego, en cascada, la entrada específica a descontar (`group_id` + fecha + cantidad recibida).
 
 ### Próximos pasos (en orden)
 - [x] **Tabla `farm_workers` creada en Supabase** — activa con datos del equipo.
@@ -147,7 +151,8 @@ Para correr el app localmente: `python -m http.server 8080` desde este directori
 - [x] **Tabla `bio_finished_products` poblada** — 31 bioinsumos desde Google Drive "Biofactory Financials.xlsx" (hoja "Unit Economics"), usando `Sell Price` (USD, sin convertir a colones) como `internal_price`. `internal_price` se cambió a nullable (`ALTER COLUMN ... DROP NOT NULL`, corrido por Javier) porque 5 productos no tienen precio de venta definido aún: Supermagro con boñiga, Caldo Bordelés, Sílico Sulfo Cúprico, Protector zinc, Repelente de insectos — insertados activos con `internal_price: null`, completar cuando se definan precios. Se excluyó la fila "Biol Promedio" (no es un producto real, es un agregado de la hoja).
 - [ ] **Vincular `farm_workers.profile_id` para el resto del equipo** (Kennedy, etc.) cuando tengan login real en Supabase — hasta entonces, el dropdown de "Responsable" en Biofábrica solo ofrece al usuario logueado.
 - [ ] **Poblar `bio_raw_materials`** — catálogo vacío; se puede ir poblando desde el formulario de Entrada (opción admin-only "Nueva materia prima") o por lote vía Supabase si Javier consigue una fuente de datos.
-- [ ] **Módulo Vivero** — pantalla + formularios; requiere sesión de discovery
+- [ ] **Poblar catálogos de Vivero — bloqueante para poder probar el módulo** — `nursery_species`, `nursery_price_categories`, `nursery_raw_materials`, `substrate_types`, `container_types` están todas vacías (0 filas, confirmado contra Supabase). Sin esto los dropdowns del módulo no tienen opciones. `nursery_raw_materials` se puede poblar desde el formulario de Entrada (admin-only), pero especies, categorías de precio, tipos de sustrato y tipos de contenedor no tienen creación inline — hay que cargarlas directo en Supabase o agregar esa opción al frontend.
+- [ ] **Probar Módulo Vivero end-to-end** con login real una vez poblados los catálogos — entrada de MP, preparar sustrato, llenado de contenedores, ciclo completo de un lote (crear → germinación → establecimiento → mantenimiento/conteos → graduación → salida), cotización.
 - [ ] **Implementar RLS policies en Supabase** — control de acceso por rol y departamento (antes del go-live)
 - [ ] **Crear usuarios de Supabase para el equipo** — justo antes del go-live, cuando los módulos estén listos
 - [ ] **Implementar upload de fotos** — Google Drive via service account (ver TODO en `worker/worker.js:handlePhotos`)
@@ -162,7 +167,7 @@ Para correr el app localmente: `python -m http.server 8080` desde este directori
 |---|---|---|---|
 | Producción de Alimentos | ✅ Activo — 6 formularios en `#food-screen` | ✅ | ✅ En Supabase |
 | Biofábrica | ✅ Activo — 4 formularios + 2 inventarios en `#bio-screen` | ✅ | ✅ En Supabase |
-| Vivero | 🔄 Tile placeholder en finca-home | ✅ | ✅ En Supabase |
+| Vivero | ✅ Activo — formularios + 3 inventarios en `#nursery-screen` (catálogos vacíos, ver Próximos pasos) | ✅ | ✅ En Supabase |
 
 ### Ops Portal — Proyecto separado (Nicolás Salas)
 Limpieza, Mantenimiento y Proveduría. Stack independiente (Google Sheets como backend).
@@ -196,7 +201,13 @@ Cada departamento nuevo requiere una sesión de discovery de 20–30 min antes d
         │     │     ├─→ form: salida
         │     │     ├─→ inventario: materias primas (solo lectura)
         │     │     └─→ inventario: producto terminado (solo lectura)
-        │     ├─→ Vivero                   [placeholder → #con-screen]
+        │     ├─→ #nursery-screen (Vivero) ← openVivero() directo en onclick
+        │     │     ├─→ form: entrada / sustrato / llenado
+        │     │     ├─→ form: crear-lote
+        │     │     ├─→ openNurseryLotPicker() → detalle de lote → sub-acciones (dos+ pasos en #fs):
+        │     │     │     germination-tracking · establishment-count · maintenance · plant-counts · graduations · outputs
+        │     │     ├─→ openNurseryQuoteForm() / openNurseryQuotes() (aceptar/rechazar)
+        │     │     └─→ inventario: materias primas / sustratos / contenedores (solo lectura)
         │     └─→ Reportes (admin)         [placeholder → #con-screen]
         ├─→ #ops-home (sub-galería Operaciones)
         │     ├─→ #dept (Limpieza)
@@ -259,6 +270,16 @@ Documentadas en detalle en `Docs/TDD.md` sección 9. Resumen:
 - **Cascada de lote:** `abrir-lote` hace un solo `POST /api/bio/batches` con `inputs: [...]` (el Worker crea el lote y las filas de `bio_production_batch_inputs` en cascada) — a diferencia de `prep-cama` en `food.js`, que hace `Promise.all` de un POST por fila porque cada fila es una cama distinta; aquí todas las filas pertenecen a un solo lote.
 - **Cerrar Lote (dos pasos sin `FORMS[type]`):** `openBioBatchPicker()` lista lotes `in_progress`; `_openBioCloseForm(batch)` reemplaza `#fbody` con el formulario real. No usa el objeto `FORMS` porque el batch elegido es estado de navegación, no una definición estática de formulario.
 - **Creación inline de catálogo admin-only:** mismo patrón `__new__` que `_cropOpts()` en `food.js`, pero condicionado a `state.currentUser?.profile?.role === 'admin'` porque `handleCatalogs()` en el Worker solo permite POST de no-admins sobre `crops` (no sobre `bio-raw-materials`).
+
+### Patrones de `nursery.js`
+
+- **Estado de módulo:** `_cats` (`{ species, priceCategories, rawMaterials, substrateTypes, containerTypes, bioProducts, workers }`), `_entriesCache` (`GET /api/nursery/raw-material-entries`, cargado solo al abrir 'sustrato'), `_substrateBatchesCache` (cargado solo al abrir 'llenado'), `_lotsCache` (`GET /api/nursery/lots`, refrescado en cada apertura de picker/cotización), `_activeLot` / `_activeLotDetail` (lote elegido en Gestionar Lote + su detalle completo).
+- **Trazabilidad por entrada específica (a diferencia de Biofábrica):** `substrate_batch_components.raw_material_entry_id` referencia una entrada concreta de `nursery_raw_material_entries` (un grupo recibido en una fecha), no la materia prima genérica. El form de Preparar Sustrato pide primero la materia prima y luego, en cascada (`window._nurMatChanged`), la entrada específica a descontar — patrón nuevo, no existe en `food.js`/`bio.js`.
+- **Gestionar Lote (picker → detalle → sub-formularios, tres niveles dentro de `#fs`):** `openNurseryLotPicker()` lista todos los lotes; `_openNurseryLotDetail(lot)` hace `GET /api/nursery/lots/:id` y muestra botones de sub-acción condicionados por estado (`germination-tracking`/`establishment-count` solo si `status === 'germination'`; `maintenance`/`plant-counts`/`graduations`/`outputs` solo si no); `_openNurseryLotSubForm(action)` reemplaza `#fbody` con el formulario específico y su botón "Atrás" vuelve al detalle del lote (no a la galería) vía `_openNurseryLotDetail(_activeLot)`, re-fetcheando para reflejar el nuevo estado tras un conteo de establecimiento.
+- **`lot_id`/`status` nunca se envían en `crear-lote`:** ambos los setea un trigger en Supabase (`fn_init_plant_lot`) — el Worker simplemente postea `species_id, origin, date_start, initial_quantity, ...` y el trigger genera `VIV-YYYY-NNNN` y decide si el lote arranca en `germination` (semilla/esqueje) o `active` (compra/repique).
+- **Repique (`origin === 'repoting'`, sic — no "repotting"):** el CHECK constraint de Supabase usa el string `'repoting'` tal cual; al elegir el lote de origen (`f-repoting-source`), `window._nurRepotingSourceChanged()` autocompleta y deshabilita el dropdown de especie porque el lote repicado hereda la especie del lote fuente.
+- **Cotización con ítems multi-línea:** mismo patrón de filas dinámicas que `food.js`/`bio.js`, pero con cascada de 3 niveles por fila (especie → categoría de precio → lote) — elegir especie repuebla categorías de precio y lotes disponibles de esa especie; elegir categoría autocompleta `base_unit_price` y `adjusted_unit_price` (editable, para descuentos/premiums por cliente); el subtotal se recalcula en cada input. El Worker crea la cotización y sus `quotation_items` en cascada (mismo patrón que `abrir-lote` en `bio.js`).
+- **Catálogos sin creación inline (a diferencia de `bio-raw-materials`):** solo `nursery-raw-materials` tiene la opción `__new__` admin-only en el dropdown. Especies, categorías de precio, tipos de sustrato y tipos de contenedor no la tienen — hay que cargarlas directo en Supabase (ver Próximos pasos: catálogos de Vivero vacíos).
 
 ---
 
