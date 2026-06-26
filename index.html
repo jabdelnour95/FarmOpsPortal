@@ -239,9 +239,9 @@ body{font-family:'Cormorant',Georgia,serif;background:var(--cream);color:var(--b
       <div class="tile-icon finca">🧪</div>
       <div class="tile-body"><div class="tile-name">Biofábrica</div><div class="tile-desc">Producción de insumos biológicos</div><span class="tile-badge active">Activo</span></div>
     </div>
-    <div class="dept-tile" onclick="openFincaModule('vivero')">
+    <div class="dept-tile" onclick="openVivero()">
       <div class="tile-icon finca">🌿</div>
-      <div class="tile-body"><div class="tile-name">Vivero</div><div class="tile-desc">Propagación y gestión de plantas</div><span class="tile-badge soon">En construcción</span></div>
+      <div class="tile-body"><div class="tile-name">Vivero</div><div class="tile-desc">Propagación y gestión de plantas</div><span class="tile-badge active">Activo</span></div>
     </div>
     <div class="dept-tile full admin-only" onclick="openFincaModule('reportes')">
       <div class="tile-icon rep">📊</div>
@@ -377,6 +377,76 @@ body{font-family:'Cormorant',Georgia,serif;background:var(--cream);color:var(--b
     <div class="divider"></div>
     <div class="glbl">Últimos lotes</div>
     <div id="bio-recent-body">
+      <div style="font-size:.78rem;font-family:sans-serif;color:var(--tm);font-style:italic;">Cargando...</div>
+    </div>
+  </div>
+</div>
+
+<div id="nursery-screen" class="screen">
+  <div class="hdr">
+    <button class="btn-bk" onclick="nav('finca-home')">←</button>
+    <span class="hdr-t">Vivero</span>
+    <button class="btn-out" onclick="logout()">Salir</button>
+  </div>
+  <div class="food-body">
+    <div class="glbl" style="margin-top:.2rem;">Materias Primas y Sustrato</div>
+    <div class="grid">
+      <div class="gcard" onclick="openNurseryForm('entrada')">
+        <div class="ct">🧫 Entrada de Materia Prima</div>
+        <div class="cd">Registrar recepción de insumos</div>
+      </div>
+      <div class="gcard" onclick="openNurseryForm('sustrato')">
+        <div class="ct">🪴 Preparar Sustrato</div>
+        <div class="cd">Mezclar y producir un batch de sustrato</div>
+      </div>
+      <div class="gcard" onclick="openNurseryForm('llenado')">
+        <div class="ct">🛍️ Llenar Bolsas / Macetas</div>
+        <div class="cd">Llenado de contenedores con sustrato</div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="glbl">Lotes de Plantas</div>
+    <div class="grid">
+      <div class="gcard" onclick="openNurseryForm('crear-lote')">
+        <div class="ct">🌱 Crear Lote</div>
+        <div class="cd">Iniciar un nuevo lote de plantas</div>
+      </div>
+      <div class="gcard" onclick="openNurseryLotPicker()">
+        <div class="ct">📋 Gestionar Lote</div>
+        <div class="cd">Seguimiento, mantenimiento, conteo, graduación, salida</div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="glbl">Cotizaciones</div>
+    <div class="grid">
+      <div class="gcard" onclick="openNurseryQuoteForm()">
+        <div class="ct">📝 Nueva Cotización</div>
+        <div class="cd">Cotizar plantas para un cliente externo</div>
+      </div>
+      <div class="gcard" onclick="openNurseryQuotes()">
+        <div class="ct">📑 Ver Cotizaciones</div>
+        <div class="cd">Estado y seguimiento de cotizaciones</div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="glbl">Inventarios</div>
+    <div class="grid">
+      <div class="gcard" onclick="openNurseryInventory('raw')">
+        <div class="ct">📦 Materias Primas</div>
+        <div class="cd">Stock actual y alertas de mínimo</div>
+      </div>
+      <div class="gcard" onclick="openNurseryInventory('substrates')">
+        <div class="ct">🪴 Sustratos</div>
+        <div class="cd">Disponibilidad por tipo de sustrato</div>
+      </div>
+      <div class="gcard" onclick="openNurseryInventory('containers')">
+        <div class="ct">🛍️ Contenedores</div>
+        <div class="cd">Disponibilidad por tipo de contenedor</div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="glbl">Últimos lotes</div>
+    <div id="nursery-recent-body">
       <div style="font-size:.78rem;font-family:sans-serif;color:var(--tm);font-style:italic;">Cargando...</div>
     </div>
   </div>

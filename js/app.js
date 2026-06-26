@@ -16,6 +16,11 @@ import { openFood, openFoodForm, submitFoodForm,
 import { openBio, openBioForm, submitBioForm,
          addBatchInputRow, removeBatchInputRow,
          openBioBatchPicker, openBioInventory } from './modules/bio.js';
+import { openVivero, openNurseryForm, submitNurseryForm,
+         addSubstrateRow, removeSubstrateRow,
+         addQuoteRow, removeQuoteRow,
+         openNurseryLotPicker, openNurseryQuoteForm, openNurseryQuotes,
+         openNurseryInventory } from './modules/nursery.js';
 
 // Expose to HTML event handlers (onclick attributes) and cross-module calls
 Object.assign(window, {
@@ -39,6 +44,12 @@ Object.assign(window, {
   openBio, openBioForm, submitBioForm,
   addBatchInputRow, removeBatchInputRow,
   openBioBatchPicker, openBioInventory,
+  // Nursery module
+  openVivero, openNurseryForm, submitNurseryForm,
+  addSubstrateRow, removeSubstrateRow,
+  addQuoteRow, removeQuoteRow,
+  openNurseryLotPicker, openNurseryQuoteForm, openNurseryQuotes,
+  openNurseryInventory,
   // Internal bindings used by navigation.js to avoid circular imports
   _openChecklistMenu: openChecklistMenu,
   _openInventarios:   openInventarios,

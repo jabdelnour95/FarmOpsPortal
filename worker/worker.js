@@ -589,12 +589,12 @@ async function handleBio(request, env, auth) {
 // ─── NURSERY ───────────────────────────────────────────────────────────────
 
 const NURSERY_LOT_SUB = {
-  'germination-tracking': 'nursery_germination_tracking',
-  'establishment-count': 'nursery_establishment_counts',
-  maintenance: 'nursery_lot_maintenance',
-  'plant-counts': 'nursery_plant_counts',
-  graduations: 'nursery_graduations',
-  outputs: 'nursery_lot_outputs',
+  'germination-tracking': 'germination_tracking',
+  'establishment-count': 'establishment_counts',
+  maintenance: 'lot_maintenance',
+  'plant-counts': 'plant_counts',
+  graduations: 'lot_graduations',
+  outputs: 'plant_lot_outputs',
 };
 
 async function handleNursery(request, env, auth) {
@@ -618,16 +618,16 @@ async function handleNursery(request, env, auth) {
   // ── substrate-batches (con array de components)
   if (resource === 'substrate-batches') {
     if (request.method === 'GET') {
-      const res = await sbGet(env, 'nursery_substrate_batches', 'select=*,nursery_substrate_batch_components(*)&order=date.desc');
+      const res = await sbGet(env, 'substrate_batches', 'select=*,substrate_types(name,code),substrate_batch_components(*)&order=date.desc');
       return proxySb(request, res);
     }
     if (request.method === 'POST') {
       const { components = [], ...fields } = await request.json();
-      const batchRes = await sbPost(env, 'nursery_substrate_batches', fields);
+      const batchRes = await sbPost(env, 'substrate_batches', fields);
       if (!batchRes.ok) return proxySb(request, batchRes);
       const batch = (await batchRes.json())[0];
       if (components.length) {
-        await sbPost(env, 'nursery_substrate_batch_components', components.map(c => ({ ...c, batch_id: batch.id })));
+        await sbPost(env, 'substrate_batch_components', components.map(c => ({ ...c, batch_id: batch.id })));
       }
       return okResponse(request, batch, 201);
     }
@@ -636,11 +636,11 @@ async function handleNursery(request, env, auth) {
   // ── container-fills
   if (resource === 'container-fills') {
     if (request.method === 'GET') {
-      const res = await sbGet(env, 'nursery_container_fills', 'select=*,container_types(name)&order=date.desc');
+      const res = await sbGet(env, 'container_fills', 'select=*,container_types(name),substrate_batches(batch_id)&order=date.desc');
       return proxySb(request, res);
     }
     if (request.method === 'POST') {
-      const res = await sbPost(env, 'nursery_container_fills', await request.json());
+      const res = await sbPost(env, 'container_fills', await request.json());
       return proxySb(request, res);
     }
   }
@@ -650,11 +650,11 @@ async function handleNursery(request, env, auth) {
     // GET/POST /api/nursery/lots
     if (!itemId) {
       if (request.method === 'GET') {
-        const res = await sbGet(env, 'nursery_lots', 'select=*,nursery_species(name),container_types(name)&order=date_started.desc');
+        const res = await sbGet(env, 'plant_lots', 'select=*,nursery_species(name),container_types(name)&order=date_start.desc');
         return proxySb(request, res);
       }
       if (request.method === 'POST') {
-        const res = await sbPost(env, 'nursery_lots', await request.json());
+        const res = await sbPost(env, 'plant_lots', await request.json());
         return proxySb(request, res);
       }
     }
@@ -662,13 +662,13 @@ async function handleNursery(request, env, auth) {
     // GET /api/nursery/lots/:id — detalle completo
     if (itemId && !action && request.method === 'GET') {
       const [lotRes, germRes, estRes, maintRes, countRes, gradRes, outRes] = await Promise.all([
-        sbGet(env, 'nursery_lots', `id=eq.${itemId}&select=*,nursery_species(*),container_types(*)`),
-        sbGet(env, 'nursery_germination_tracking', `lot_id=eq.${itemId}&order=tracking_date.asc`),
-        sbGet(env, 'nursery_establishment_counts', `lot_id=eq.${itemId}&limit=1`),
-        sbGet(env, 'nursery_lot_maintenance', `lot_id=eq.${itemId}&order=date.desc`),
-        sbGet(env, 'nursery_plant_counts', `lot_id=eq.${itemId}&order=count_date.desc`),
-        sbGet(env, 'nursery_graduations', `lot_id=eq.${itemId}&order=graduation_date.desc`),
-        sbGet(env, 'nursery_lot_outputs', `lot_id=eq.${itemId}&order=output_date.desc`),
+        sbGet(env, 'plant_lots', `id=eq.${itemId}&select=*,nursery_species(*),container_types(*)`),
+        sbGet(env, 'germination_tracking', `lot_id=eq.${itemId}&order=date.asc`),
+        sbGet(env, 'establishment_counts', `lot_id=eq.${itemId}&order=date.desc&limit=1`),
+        sbGet(env, 'lot_maintenance', `lot_id=eq.${itemId}&order=date.desc`),
+        sbGet(env, 'plant_counts', `lot_id=eq.${itemId}&order=date.desc`),
+        sbGet(env, 'lot_graduations', `lot_id=eq.${itemId}&order=date.desc`),
+        sbGet(env, 'plant_lot_outputs', `lot_id=eq.${itemId}&order=date.desc`),
       ]);
 
       const [lot, germination, establishment, maintenance, plant_counts, graduations, outputs] = await Promise.all([
@@ -706,18 +706,26 @@ async function handleNursery(request, env, auth) {
   if (resource === 'quotations') {
     if (!itemId) {
       if (request.method === 'GET') {
-        const res = await sbGet(env, 'nursery_quotations', 'select=*,nursery_quotation_items(*)&order=date.desc');
+        const res = await sbGet(env, 'quotations', 'select=*,quotation_items(*)&order=created_at.desc');
         return proxySb(request, res);
       }
       if (request.method === 'POST') {
-        const res = await sbPost(env, 'nursery_quotations', await request.json());
-        return proxySb(request, res);
+        const { items = [], ...fields } = await request.json();
+        const quoteRes = await sbPost(env, 'quotations', fields);
+        if (!quoteRes.ok) return proxySb(request, quoteRes);
+        const quote = (await quoteRes.json())[0];
+        if (items.length) {
+          await sbPost(env, 'quotation_items', items.map(it => ({ ...it, quotation_id: quote.id })));
+        }
+        return okResponse(request, quote, 201);
       }
     }
     // PATCH /api/nursery/quotations/:id/status
     if (itemId && action === 'status' && request.method === 'PATCH') {
       const { status } = await request.json();
-      const res = await sbPatch(env, 'nursery_quotations', `id=eq.${itemId}`, { status });
+      const fields = { status };
+      if (status === 'accepted') fields.accepted_at = new Date().toISOString();
+      const res = await sbPatch(env, 'quotations', `id=eq.${itemId}`, fields);
       return proxySb(request, res);
     }
   }
