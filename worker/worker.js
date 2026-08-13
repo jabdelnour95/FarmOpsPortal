@@ -243,6 +243,35 @@ async function handleAuth(request, env) {
     return okResponse(request, { success: true });
   }
 
+  // Self-service: el usuario logueado cambia su propia contraseña.
+  // A diferencia de reset-password (flujo por email), acá no depende de que el
+  // correo @tierramor.cr reciba nada — usa la sesión activa del usuario.
+  if (action === 'change-password') {
+    const auth = await validateJWT(request, env);
+    if (!auth.ok) return errResponse(request, 'UNAUTHORIZED', auth.message, 401);
+
+    const newPassword = body.new_password;
+    if (!newPassword || newPassword.length < 6) {
+      return errResponse(request, 'VALIDATION', 'La contraseña debe tener al menos 6 caracteres.', 400);
+    }
+
+    const res = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+      method: 'PUT',
+      headers: {
+        apikey: env.SUPABASE_SERVICE_KEY,
+        Authorization: request.headers.get('Authorization'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ password: newPassword }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const reason = data.msg || data.message || data.error_description || 'No se pudo actualizar la contraseña.';
+      return errResponse(request, 'ERROR', reason, res.status);
+    }
+    return okResponse(request, { success: true });
+  }
+
   return errResponse(request, 'NOT_FOUND', 'Ruta de auth no encontrada', 404);
 }
 

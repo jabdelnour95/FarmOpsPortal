@@ -1,4 +1,5 @@
-import { doLogin, logout, restoreSession }                        from './modules/auth.js';
+import { doLogin, logout, restoreSession,
+         openPasswordModal, closePasswordModal, submitPasswordChange } from './modules/auth.js';
 import { show, nav, openDept, openDeptFrom, openFinca, openOps, openFincaModule, navBackDept, filterCards, openResource, openCalendar } from './modules/navigation.js';
 import { openInventarios, openRopaCama, openPropsMenu, openPropsForm, adjQty, submitInventario } from './modules/inventory.js';
 import { openChecklistMenu, promptChecklist, closeModal, confirmChecklist, toggleCB, startChecklist, submitChecklist } from './modules/checklists.js';
@@ -25,6 +26,7 @@ import { openVivero, openNurseryForm, submitNurseryForm,
 // Expose to HTML event handlers (onclick attributes) and cross-module calls
 Object.assign(window, {
   doLogin, logout,
+  openPasswordModal, closePasswordModal, submitPasswordChange,
   nav, openDept, openDeptFrom, openFinca, openOps, openFincaModule, navBackDept, filterCards, openResource,
   openInventarios, openRopaCama, openPropsMenu, openPropsForm, adjQty, submitInventario,
   openChecklistMenu, promptChecklist, closeModal, confirmChecklist, toggleCB, startChecklist, submitChecklist,

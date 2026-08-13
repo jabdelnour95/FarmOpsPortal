@@ -85,3 +85,65 @@ function _clearStorage() {
   localStorage.removeItem('tm_refresh');
   localStorage.removeItem('tm_user');
 }
+
+// ─── CAMBIO DE CONTRASEÑA (self-service) ───────────────────────────────────
+
+export function openPasswordModal() {
+  const modal = document.getElementById('pwd-modal');
+  if (!modal) return;
+  document.getElementById('pwd-new').value = '';
+  document.getElementById('pwd-confirm').value = '';
+  document.getElementById('pwd-err').style.display = 'none';
+  const btn = document.getElementById('pwd-save-btn');
+  btn.disabled = false;
+  btn.textContent = 'Guardar';
+  modal.classList.add('show');
+}
+
+export function closePasswordModal() {
+  document.getElementById('pwd-modal')?.classList.remove('show');
+}
+
+export async function submitPasswordChange() {
+  const errEl = document.getElementById('pwd-err');
+  const btn   = document.getElementById('pwd-save-btn');
+  const pwd1  = document.getElementById('pwd-new').value;
+  const pwd2  = document.getElementById('pwd-confirm').value;
+
+  errEl.style.display = 'none';
+
+  if (pwd1.length < 6) {
+    errEl.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (pwd1 !== pwd2) {
+    errEl.textContent = 'Las contraseñas no coinciden.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+
+  try {
+    const res = await fetch(`${WORKER_URL}/api/auth/change-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${state.accessToken}`,
+      },
+      body: JSON.stringify({ new_password: pwd1 }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Error al cambiar la contraseña.');
+
+    btn.textContent = 'Guardado ✓';
+    setTimeout(closePasswordModal, 900);
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Guardar';
+  }
+}

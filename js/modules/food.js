@@ -39,6 +39,21 @@ async function _api(path, method = 'GET', body = null) {
 
 // ─── CATALOGS ──────────────────────────────────────────────────────────────
 
+// Orden natural de códigos de cama: "code.asc" del Worker es alfabético (CBA1, CBA10,
+// CBA11, CBA2...); acá separamos el prefijo de letras del número final y comparamos
+// el número como entero, para que quede CBA1, CBA2, ..., CBA10, CBA11.
+function _bedCodeParts(code) {
+  const m = /^(.*?)(\d+)$/.exec(code || '');
+  return m ? { pre: m[1], num: parseInt(m[2], 10) } : { pre: code || '', num: 0 };
+}
+
+function _sortBedsNaturally(beds) {
+  return [...(beds || [])].sort((a, b) => {
+    const pa = _bedCodeParts(a.code), pb = _bedCodeParts(b.code);
+    return pa.pre !== pb.pre ? pa.pre.localeCompare(pb.pre) : pa.num - pb.num;
+  });
+}
+
 async function _loadCats() {
   if (_cats) return _cats;
   const [beds, crops, areas, subareas, bio, workers] = await Promise.all([
@@ -49,7 +64,7 @@ async function _loadCats() {
     _api('/api/catalogs/bio-finished-products'),
     _api('/api/farm-workers').catch(() => []),
   ]);
-  _cats = { beds, crops, areas, subareas, bio, workers };
+  _cats = { beds: _sortBedsNaturally(beds), crops, areas, subareas, bio, workers };
   return _cats;
 }
 
