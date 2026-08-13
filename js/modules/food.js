@@ -7,7 +7,7 @@ const API = 'https://tierramor-api.jabdelnour95.workers.dev';
 
 // ─── MODULE STATE ──────────────────────────────────────────────────────────
 
-let _cats       = null;  // { beds, crops, areas, bio }
+let _cats       = null;  // { beds, crops, areas, subareas, bio }
 let _plantings  = null;  // preloaded planting lots for lot-id lookup
 
 let _inputRows    = [];  // bio-product rows (prep-cama, aplic-insumos)
@@ -41,14 +41,15 @@ async function _api(path, method = 'GET', body = null) {
 
 async function _loadCats() {
   if (_cats) return _cats;
-  const [beds, crops, areas, bio, workers] = await Promise.all([
+  const [beds, crops, areas, subareas, bio, workers] = await Promise.all([
     _api('/api/catalogs/beds'),
     _api('/api/catalogs/crops'),
     _api('/api/catalogs/areas'),
+    _api('/api/catalogs/subareas'),
     _api('/api/catalogs/bio-finished-products'),
     _api('/api/farm-workers').catch(() => []),
   ]);
-  _cats = { beds, crops, areas, bio, workers };
+  _cats = { beds, crops, areas, subareas, bio, workers };
   return _cats;
 }
 
@@ -65,10 +66,21 @@ const _cropOpts = () => `<option value="">— Cultivo —</option>${_opts(_cats?
 const _areaOpts = () => `<option value="">— Área —</option>${_opts(_cats?.areas || [])}`;
 const _bioOpts  = () => `<option value="">— Producto —</option>${_opts(_cats?.bio  || [])}`;
 
-function _bedOptsByArea(areaId, placeholder = '— Cama —') {
-  const filtered = areaId
-    ? _active(_cats?.beds || []).filter(b => b.area_id === areaId)
-    : _active(_cats?.beds || []);
+// Sólo algunas áreas tienen subáreas (ej: SAF Canelo, SAF Basecamp, Huerta, Basecamp Atrás);
+// Ojoche y Vivero Greens no las tienen — el select queda vacío en ese caso.
+function _subareasForArea(areaId) {
+  return areaId ? _active(_cats?.subareas || []).filter(s => s.area_id === areaId) : [];
+}
+
+function _subareaOptsByArea(areaId) {
+  const subs = _subareasForArea(areaId);
+  return `<option value="">${subs.length ? '— Subárea —' : '— Sin subáreas —'}</option>${subs.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}`;
+}
+
+function _bedOptsByArea(areaId, subareaId = '', placeholder = '— Cama —') {
+  let filtered = _active(_cats?.beds || []);
+  if (areaId)    filtered = filtered.filter(b => b.area_id === areaId);
+  if (subareaId) filtered = filtered.filter(b => b.subarea_id === subareaId);
   return `<option value="">${placeholder}</option>${filtered.map(b => `<option value="${b.id}">${b.code}</option>`).join('')}`;
 }
 
@@ -226,7 +238,7 @@ function _renderInputRows() {
 // ─── PREP-BED ROWS (multiple beds for prep-cama) ───────────────────────────
 
 export function addPrepBedRow() {
-  _prepBedRows.push({ area_id: '', bed_id: '' });
+  _prepBedRows.push({ area_id: '', subarea_id: '', bed_id: '' });
   _renderPrepBedRows();
 }
 
@@ -239,28 +251,45 @@ function _renderPrepBedRows() {
   const el = document.getElementById('prep-bed-rows');
   if (!el) return;
   el.innerHTML = _prepBedRows.map((row, i) => `
-    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:.5rem;align-items:center;margin-bottom:.5rem;">
-      <select style="background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
-                     padding:.6rem .6rem;font-size:.8rem;font-family:sans-serif;color:var(--brown);outline:none;"
-              id="pb-area-${i}"
-              onchange="window._foodFilterBeds('pb-bed-${i}',this.value); window._fpb(${i},'area_id',this.value)">
-        ${_areaOpts()}
-      </select>
-      <select style="background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
-                     padding:.6rem .6rem;font-size:.8rem;font-family:sans-serif;color:var(--brown);outline:none;"
-              id="pb-bed-${i}" onchange="window._fpb(${i},'bed_id',this.value)">
-        <option value="">— Cama —</option>
-      </select>
-      <button onclick="removePrepBedRow(${i})"
-              style="background:none;border:none;color:var(--clay);font-size:1.25rem;cursor:pointer;padding:.05rem .3rem;line-height:1;flex-shrink:0;">×</button>
+    <div style="background:white;border:1px solid rgba(84,66,54,.1);border-radius:10px;padding:.6rem .65rem;margin-bottom:.5rem;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.5rem;">
+        <select style="background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
+                       padding:.6rem .6rem;font-size:.8rem;font-family:sans-serif;color:var(--brown);outline:none;"
+                id="pb-area-${i}"
+                onchange="window._foodAreaChanged('pb-area-${i}','pb-sub-${i}','pb-bed-${i}'); window._fpb(${i},'area_id',this.value)">
+          ${_areaOpts()}
+        </select>
+        <select style="background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
+                       padding:.6rem .6rem;font-size:.8rem;font-family:sans-serif;color:var(--brown);outline:none;"
+                id="pb-sub-${i}"
+                onchange="window._foodSubareaChanged('pb-area-${i}','pb-sub-${i}','pb-bed-${i}'); window._fpb(${i},'subarea_id',this.value)">
+          <option value="">— Seleccioná el área primero —</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:.5rem;align-items:center;">
+        <select style="flex:1;background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
+                       padding:.6rem .6rem;font-size:.8rem;font-family:sans-serif;color:var(--brown);outline:none;"
+                id="pb-bed-${i}" onchange="window._fpb(${i},'bed_id',this.value)">
+          <option value="">— Cama —</option>
+        </select>
+        <button onclick="removePrepBedRow(${i})"
+                style="background:none;border:none;color:var(--clay);font-size:1.25rem;cursor:pointer;padding:.05rem .3rem;line-height:1;flex-shrink:0;">×</button>
+      </div>
     </div>`).join('');
   _prepBedRows.forEach((row, i) => {
     const a = document.getElementById(`pb-area-${i}`);
     if (a && row.area_id) {
       a.value = row.area_id;
-      window._foodFilterBeds(`pb-bed-${i}`, row.area_id);
+      const s = document.getElementById(`pb-sub-${i}`);
+      if (s) {
+        s.innerHTML = _subareaOptsByArea(row.area_id);
+        if (row.subarea_id) s.value = row.subarea_id;
+      }
       const b = document.getElementById(`pb-bed-${i}`);
-      if (b && row.bed_id) b.value = row.bed_id;
+      if (b) {
+        b.innerHTML = _bedOptsByArea(row.area_id, row.subarea_id || '', '— Cama —');
+        if (row.bed_id) b.value = row.bed_id;
+      }
     }
   });
 }
@@ -280,13 +309,14 @@ export function removeApplyBedRow(idx) {
 function _renderApplyBedRows() {
   const el = document.getElementById('apply-bed-rows');
   if (!el) return;
-  const areaId = document.getElementById('f-area')?.value || '';
+  const areaId    = document.getElementById('f-area')?.value || '';
+  const subareaId = document.getElementById('f-subarea')?.value || '';
   el.innerHTML = _applyBedRows.map((row, i) => `
     <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem;">
       <select style="flex:1;background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
                      padding:.6rem .65rem;font-size:.82rem;font-family:sans-serif;color:var(--brown);outline:none;"
               id="ab-bed-${i}" onchange="window._fab(${i},'bed_id',this.value)">
-        ${_bedOptsByArea(areaId, '— Cama —')}
+        ${_bedOptsByArea(areaId, subareaId, '— Cama —')}
       </select>
       <button onclick="removeApplyBedRow(${i})"
               style="background:none;border:none;color:var(--clay);font-size:1.25rem;cursor:pointer;padding:.05rem .3rem;line-height:1;flex-shrink:0;">×</button>
@@ -300,7 +330,7 @@ function _renderApplyBedRows() {
 // ─── HARVEST ROWS ──────────────────────────────────────────────────────────
 
 export function addHarvestRow() {
-  _harvestRows.push({ crop_id: '', area_id: '', bed_id: '', qty: '', unit: '' });
+  _harvestRows.push({ crop_id: '', area_id: '', subarea_id: '', bed_id: '', qty: '', unit: '' });
   _renderHarvestRows();
 }
 
@@ -333,10 +363,18 @@ function _renderHarvestRows() {
         <select style="background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
                        padding:.6rem .6rem;font-size:.8rem;font-family:sans-serif;color:var(--brown);outline:none;"
                 id="hr-area-${i}"
-                onchange="window._fhr(${i},'area_id',this.value); window._foodFilterBeds('hr-bed-${i}',this.value)">
+                onchange="window._fhr(${i},'area_id',this.value); window._foodAreaChanged('hr-area-${i}','hr-sub-${i}','hr-bed-${i}')">
           ${_areaOpts()}
         </select>
         <select style="background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
+                       padding:.6rem .6rem;font-size:.8rem;font-family:sans-serif;color:var(--brown);outline:none;"
+                id="hr-sub-${i}"
+                onchange="window._fhr(${i},'subarea_id',this.value); window._foodSubareaChanged('hr-area-${i}','hr-sub-${i}','hr-bed-${i}')">
+          <option value="">— Seleccioná el área primero —</option>
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:.55rem;">
+        <select style="width:100%;background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
                        padding:.6rem .6rem;font-size:.8rem;font-family:sans-serif;color:var(--brown);outline:none;"
                 id="hr-bed-${i}" onchange="window._fhr(${i},'bed_id',this.value)">
           <option value="">— Cama —</option>
@@ -354,21 +392,29 @@ function _renderHarvestRows() {
       </div>
     </div>`).join('');
   _harvestRows.forEach((row, i) => {
-    ['crop_id','area_id','bed_id'].forEach(key => {
-      const pfx = { crop_id: 'hr-crop', area_id: 'hr-area', bed_id: 'hr-bed' }[key];
-      const el  = document.getElementById(`${pfx}-${i}`);
-      if (el && row[key]) {
-        if (key === 'area_id') window._foodFilterBeds(`hr-bed-${i}`, row[key]);
-        el.value = row[key];
+    const a = document.getElementById(`hr-area-${i}`);
+    if (a && row.area_id) {
+      a.value = row.area_id;
+      const s = document.getElementById(`hr-sub-${i}`);
+      if (s) {
+        s.innerHTML = _subareaOptsByArea(row.area_id);
+        if (row.subarea_id) s.value = row.subarea_id;
       }
-    });
+      const b = document.getElementById(`hr-bed-${i}`);
+      if (b) {
+        b.innerHTML = _bedOptsByArea(row.area_id, row.subarea_id || '', '— Cama —');
+        if (row.bed_id) b.value = row.bed_id;
+      }
+    }
+    const cropEl = document.getElementById(`hr-crop-${i}`);
+    if (cropEl && row.crop_id) cropEl.value = row.crop_id;
   });
 }
 
 // ─── AVAILABILITY ROWS ─────────────────────────────────────────────────────
 
 export function addFoodAvailRow() {
-  _availRows.push({ crop_id: '', area_id: '', bed_id: '', qty: '', unit: '' });
+  _availRows.push({ crop_id: '', area_id: '', subarea_id: '', bed_id: '', qty: '', unit: '' });
   _renderAvailRows();
 }
 
@@ -401,10 +447,18 @@ function _renderAvailRows() {
         <select style="background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
                        padding:.55rem .6rem;font-size:.8rem;font-family:sans-serif;color:var(--brown);outline:none;"
                 id="av-area-${i}"
-                onchange="window._fac(${i},'area_id',this.value); window._foodFilterBeds('av-bed-${i}',this.value)">
+                onchange="window._fac(${i},'area_id',this.value); window._foodAreaChanged('av-area-${i}','av-sub-${i}','av-bed-${i}')">
           ${_areaOpts()}
         </select>
         <select style="background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
+                       padding:.55rem .6rem;font-size:.8rem;font-family:sans-serif;color:var(--brown);outline:none;"
+                id="av-sub-${i}"
+                onchange="window._fac(${i},'subarea_id',this.value); window._foodSubareaChanged('av-area-${i}','av-sub-${i}','av-bed-${i}')">
+          <option value="">— Seleccioná el área primero —</option>
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:.5rem;">
+        <select style="width:100%;background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
                        padding:.55rem .6rem;font-size:.8rem;font-family:sans-serif;color:var(--brown);outline:none;"
                 id="av-bed-${i}" onchange="window._fac(${i},'bed_id',this.value)">
           <option value="">— Cama —</option>
@@ -422,14 +476,22 @@ function _renderAvailRows() {
       </div>
     </div>`).join('');
   _availRows.forEach((row, i) => {
-    ['crop_id','area_id','bed_id'].forEach(key => {
-      const pfx = { crop_id: 'av-crop', area_id: 'av-area', bed_id: 'av-bed' }[key];
-      const el  = document.getElementById(`${pfx}-${i}`);
-      if (el && row[key]) {
-        if (key === 'area_id') window._foodFilterBeds(`av-bed-${i}`, row[key]);
-        el.value = row[key];
+    const a = document.getElementById(`av-area-${i}`);
+    if (a && row.area_id) {
+      a.value = row.area_id;
+      const s = document.getElementById(`av-sub-${i}`);
+      if (s) {
+        s.innerHTML = _subareaOptsByArea(row.area_id);
+        if (row.subarea_id) s.value = row.subarea_id;
       }
-    });
+      const b = document.getElementById(`av-bed-${i}`);
+      if (b) {
+        b.innerHTML = _bedOptsByArea(row.area_id, row.subarea_id || '', '— Cama —');
+        if (row.bed_id) b.value = row.bed_id;
+      }
+    }
+    const cropEl = document.getElementById(`av-crop-${i}`);
+    if (cropEl && row.crop_id) cropEl.value = row.crop_id;
     const uEl = document.getElementById(`av-unit-${i}`);
     if (uEl && row.unit) uEl.value = row.unit;
   });
@@ -500,7 +562,13 @@ const FORMS = {
       <div class="fg"><label>Fecha</label><input type="date" id="f-fecha"></div>
       <div class="fg">
         <label>Área productiva</label>
-        <select id="f-area" onchange="window._foodFilterBeds('f-bed',this.value)">${_areaOpts()}</select>
+        <select id="f-area" onchange="window._foodAreaChanged('f-area','f-subarea','f-bed')">${_areaOpts()}</select>
+      </div>
+      <div class="fg">
+        <label>Subárea</label>
+        <select id="f-subarea" onchange="window._foodSubareaChanged('f-area','f-subarea','f-bed')">
+          <option value="">— Seleccioná el área primero —</option>
+        </select>
       </div>
       <div class="fg">
         <label>Cama</label>
@@ -577,7 +645,14 @@ const FORMS = {
       <div class="fg"><label>Fecha</label><input type="date" id="f-fecha"></div>
       <div class="fg">
         <label>Área productiva</label>
-        <select id="f-area" onchange="window._foodApplyScopeAreaChanged()">${_areaOpts()}</select>
+        <select id="f-area" onchange="window._foodApplyAreaChanged()">${_areaOpts()}</select>
+      </div>
+      <div class="fg">
+        <label>Subárea</label>
+        <div class="doc-note" style="margin-bottom:.35rem;">Opcional — sólo para ubicar más rápido las camas si elegís "Camas específicas".</div>
+        <select id="f-subarea" onchange="window._foodApplyScopeAreaChanged()">
+          <option value="">— Seleccioná el área primero —</option>
+        </select>
       </div>
       <div class="fg"><label>Método de aplicación</label>
         <select id="f-method">
@@ -617,12 +692,18 @@ const FORMS = {
       <div class="fg"><label>Fecha</label><input type="date" id="f-fecha"></div>
       <div class="fg">
         <label>Área productiva</label>
-        <select id="f-area" onchange="window._foodFilterBeds('f-bed',this.value)">${_areaOpts()}</select>
+        <select id="f-area" onchange="window._foodAreaChanged('f-area','f-subarea','f-bed')">${_areaOpts()}</select>
       </div>
       ${_scopeToggle('Nivel de actividad', 'maint',
         [['area','Área entera'], ['bed','Cama específica']],
         'window._foodMaintScope')}
       <div id="maint-bed-section" style="display:none;">
+        <div class="fg">
+          <label>Subárea</label>
+          <select id="f-subarea" onchange="window._foodSubareaChanged('f-area','f-subarea','f-bed')">
+            <option value="">— Seleccioná el área primero —</option>
+          </select>
+        </div>
         <div class="fg">
           <label>Cama</label>
           <select id="f-bed"><option value="">— Seleccioná el área primero —</option></select>
@@ -980,15 +1061,44 @@ window._fpb = (i, key, val) => { if (_prepBedRows[i]) _prepBedRows[i][key] = val
 window._fab = (i, key, val) => { if (_applyBedRows[i])_applyBedRows[i][key]= val; };
 window._fhr = (i, key, val) => { if (_harvestRows[i]) _harvestRows[i][key] = val; };
 
-// Cascading area → bed filter
-window._foodFilterBeds = (bedSelId, areaId) => {
+// Cascading area (+ optional subarea) → bed filter
+window._foodFilterBeds = (bedSelId, areaId, subareaId = '') => {
   const sel = document.getElementById(bedSelId);
   if (!sel) return;
-  sel.innerHTML = _bedOptsByArea(areaId, '— Cama —');
+  sel.innerHTML = _bedOptsByArea(areaId, subareaId, '— Cama —');
   sel.value = '';
 };
 
-// Also update apply-bed rows when area changes in aplic-insumos
+// Area select changed → repopulate its subarea select and reset the bed select
+window._foodAreaChanged = (areaSelId, subareaSelId, bedSelId) => {
+  const areaId = document.getElementById(areaSelId)?.value || '';
+  const subSel = document.getElementById(subareaSelId);
+  if (subSel) {
+    subSel.innerHTML = _subareaOptsByArea(areaId);
+    subSel.value = '';
+  }
+  window._foodFilterBeds(bedSelId, areaId, '');
+};
+
+// Subarea select changed → refilter the bed select
+window._foodSubareaChanged = (areaSelId, subareaSelId, bedSelId) => {
+  const areaId    = document.getElementById(areaSelId)?.value || '';
+  const subareaId = document.getElementById(subareaSelId)?.value || '';
+  window._foodFilterBeds(bedSelId, areaId, subareaId);
+};
+
+// Area select changed in aplic-insumos → repopulate subarea, then refresh bed rows
+window._foodApplyAreaChanged = () => {
+  const areaId = document.getElementById('f-area')?.value || '';
+  const subSel = document.getElementById('f-subarea');
+  if (subSel) {
+    subSel.innerHTML = _subareaOptsByArea(areaId);
+    subSel.value = '';
+  }
+  window._foodApplyScopeAreaChanged();
+};
+
+// Also update apply-bed rows when area/subarea changes in aplic-insumos
 window._foodApplyScopeAreaChanged = () => {
   _applyBedRows = [];
   _renderApplyBedRows();
