@@ -21,7 +21,7 @@ Un **ERP operativo para la Finca de Tierramor** — el sistema de registro centr
 | Repo | URL | Estado |
 |---|---|---|
 | Original de Nicolás | https://github.com/TAops26/Ops-Portal | No tocar — referencia solamente |
-| Fork de Javier (V2) | https://github.com/jabdelnour95/Ops-Portal-V2 | Activo — este directorio |
+| Fork de Javier (V2) | https://github.com/jabdelnour95/FarmOpsPortal | Activo — este directorio (renombrado desde Ops-Portal-V2) |
 
 **Directorio local:** `C:\Users\jabde\OneDrive\Desktop\TIERRAMOR-OS\10_OPS_OS`
 
@@ -35,7 +35,7 @@ Para correr el app localmente: `python -m http.server 8080` desde este directori
 |---|---|---|---|
 | Supabase | `tierramor-portal` | South America (São Paulo) | ✅ Activo — schema instalado |
 | Cloudflare Worker | `tierramor-api` | Auto | ✅ Desplegado — `https://tierramor-api.jabdelnour95.workers.dev` |
-| GitHub Pages | `jabdelnour95/Ops-Portal-V2` | — | ⬜ Pendiente configurar |
+| GitHub Pages | `jabdelnour95/FarmOpsPortal` | — | ⬜ Pendiente configurar |
 
 **Credenciales:** guardadas en `Docs/Supabase env` (nunca commitear este archivo).
 

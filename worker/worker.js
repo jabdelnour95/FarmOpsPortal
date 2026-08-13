@@ -278,20 +278,24 @@ async function handleUsers(request, env, auth) {
       body: JSON.stringify({ email: body.email, password: body.password, email_confirm: true }),
     });
     const userData = await createRes.json();
-    if (!createRes.ok) return errResponse(request, 'ERROR', userData.message, createRes.status);
+    if (!createRes.ok) {
+      const reason = userData.msg || userData.message || userData.error_description || userData.error || JSON.stringify(userData);
+      return errResponse(request, userData.error_code || 'ERROR', reason, createRes.status);
+    }
 
     // El trigger en Supabase crea el perfil con valores por defecto; lo actualizamos
-    await sbPatch(env, 'profiles', `id=eq.${userData.user.id}`, {
+    // (el endpoint admin/users de Supabase devuelve el usuario directo, sin wrapper "user")
+    await sbPatch(env, 'profiles', `id=eq.${userData.id}`, {
       full_name: body.full_name,
       role: body.role,
     });
 
     if (body.departments?.length) {
-      const rows = body.departments.map(d => ({ profile_id: userData.user.id, department: d }));
+      const rows = body.departments.map(d => ({ profile_id: userData.id, department: d }));
       await sbPost(env, 'profile_departments', rows);
     }
 
-    return okResponse(request, { id: userData.user.id }, 201);
+    return okResponse(request, { id: userData.id }, 201);
   }
 
   if (request.method === 'PATCH' && userId) {
@@ -320,6 +324,7 @@ async function handleUsers(request, env, auth) {
 
 const CATALOG_TABLE = {
   areas: 'productive_areas',
+  subareas: 'productive_subareas',
   beds: 'beds',
   crops: 'crops',
   'bio-raw-materials': 'bio_raw_materials',
