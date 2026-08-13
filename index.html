@@ -221,7 +221,10 @@ body{font-family:'Cormorant',Georgia,serif;background:var(--cream);color:var(--b
 <div id="home" class="screen">
   <div class="home-hdr">
     <div><div class="home-logo">Tierramor</div><div class="home-sub">Portal Operativo</div></div>
-    <button class="btn-out" onclick="logout()">Salir</button>
+    <div style="display:flex;gap:.4rem;">
+      <button class="btn-out" onclick="openPasswordModal()">Contraseña</button>
+      <button class="btn-out" onclick="logout()">Salir</button>
+    </div>
   </div>
   <div class="home-greeting" id="home-greeting"></div>
   <div class="dept-gallery" id="dept-gallery"></div>
@@ -468,6 +471,24 @@ body{font-family:'Cormorant',Georgia,serif;background:var(--cream);color:var(--b
     <div class="modal-title">Listo para comenzar</div>
     <div class="modal-sub" id="modal-sub"></div>
     <div class="modal-btns"><button class="mbtn-bk" onclick="closeModal()">← Atrás</button><button class="mbtn-ok" onclick="confirmChecklist()">Aceptar ✓</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="pwd-modal">
+  <div class="modal-box">
+    <div class="modal-icon">🔒</div>
+    <div class="modal-title">Cambiar contraseña</div>
+    <div class="modal-sub">Elegí una contraseña nueva para tu cuenta.</div>
+    <div class="fg" style="text-align:left;">
+      <label>Contraseña nueva</label>
+      <input type="password" id="pwd-new" placeholder="Mínimo 6 caracteres">
+    </div>
+    <div class="fg" style="text-align:left;margin-bottom:.6rem;">
+      <label>Repetir contraseña</label>
+      <input type="password" id="pwd-confirm" placeholder="Repetí la contraseña">
+    </div>
+    <div id="pwd-err" style="display:none;color:#c0392b;font-size:.78rem;font-family:sans-serif;margin-bottom:.8rem;"></div>
+    <div class="modal-btns"><button class="mbtn-bk" onclick="closePasswordModal()">Cancelar</button><button class="mbtn-ok" id="pwd-save-btn" onclick="submitPasswordChange()">Guardar</button></div>
   </div>
 </div>
 

@@ -6,9 +6,11 @@ import { CAL_IDS, CAL_LABELS } from '../data/departments.js';
 // Top-level department tiles shown on the home gallery.
 // deptKeys: values in profile.departments that grant access to this tile.
 const DEPT_TILES = [
-  { id: 'finca',  label: 'Finca',       desc: 'Producción, Biofábrica y Vivero',           icon: '🌱', cls: 'finca', action: 'openFinca()',    status: 'active', deptKeys: ['produccion_alimentos','biofabrica','vivero'] },
+  // deptKeys deben coincidir con el CHECK constraint de profile_departments.department
+  // en Supabase: 'food_production' | 'biofactory' | 'nursery' | 'kitchen' (ver TDD.md 2.3).
+  { id: 'finca',  label: 'Finca',       desc: 'Producción, Biofábrica y Vivero',           icon: '🌱', cls: 'finca', action: 'openFinca()',    status: 'active', deptKeys: ['food_production','biofactory','nursery'] },
   { id: 'ops',    label: 'Operaciones', desc: 'Limpieza, Mantenimiento y Proveduría',       icon: '🏗️', cls: 'ops',   action: 'openOps()',      status: 'active', deptKeys: ['limpieza','mantenimiento','proveeduria'] },
-  { id: 'cocina', label: 'Cocina',      desc: 'Pedidos y gestión de cocina',                icon: '🍳', cls: 'cocina',action: null,             status: 'soon',   deptKeys: ['cocina'] },
+  { id: 'cocina', label: 'Cocina',      desc: 'Pedidos y gestión de cocina',                icon: '🍳', cls: 'cocina',action: null,             status: 'soon',   deptKeys: ['kitchen'] },
   { id: 'exp',    label: 'Experiencias',desc: 'Workshops, eventos y recorridos',            icon: '✨', cls: 'exp',   action: null,             status: 'soon',   deptKeys: ['experiencias'] },
 ];
 
