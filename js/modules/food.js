@@ -19,6 +19,7 @@ let _harvestRows  = [];  // one row per canasta in cosecha
 let _applyScope = 'area'; // 'area' | 'beds'
 let _maintScope = 'area'; // 'area' | 'bed'
 let _activeForm = null;
+let _editing    = null;  // { id } cuando se edita un registro existente (admin), null si es carga nueva
 
 // ─── API ───────────────────────────────────────────────────────────────────
 
@@ -97,6 +98,33 @@ function _bedOptsByArea(areaId, subareaId = '', placeholder = '— Cama —') {
   if (areaId)    filtered = filtered.filter(b => b.area_id === areaId);
   if (subareaId) filtered = filtered.filter(b => b.subarea_id === subareaId);
   return `<option value="">${placeholder}</option>${filtered.map(b => `<option value="${b.id}">${b.code}</option>`).join('')}`;
+}
+
+// Precarga un trío área/subárea/cama ya cascadeado (usado al editar un registro existente)
+function _prefillAreaCascade(areaSelId, subareaSelId, bedSelId, areaId, subareaId, bedId) {
+  const areaEl = document.getElementById(areaSelId);
+  if (areaEl && areaId) areaEl.value = areaId;
+  window._foodAreaChanged(areaSelId, subareaSelId, bedSelId);
+  const subEl = document.getElementById(subareaSelId);
+  if (subEl && subareaId) subEl.value = subareaId;
+  window._foodFilterBeds(bedSelId, areaId || '', subareaId || '');
+  _ensureBedOption(bedSelId, bedId);
+}
+
+// Si la cama del registro quedó inactiva en el catálogo, _bedOptsByArea() no la
+// renderiza y el <select> queda vacío. La agregamos igual para no perder el dato.
+function _ensureBedOption(bedSelId, bedId) {
+  const bedEl = document.getElementById(bedSelId);
+  if (!bedEl || !bedId) return;
+  bedEl.value = bedId;
+  if (bedEl.value !== bedId) {
+    const bed = (_cats?.beds || []).find(b => b.id === bedId);
+    const opt = document.createElement('option');
+    opt.value = bedId;
+    opt.textContent = bed ? `${bed.code} (inactiva)` : 'Cama no encontrada en el catálogo';
+    bedEl.appendChild(opt);
+    bedEl.value = bedId;
+  }
 }
 
 // ─── AUDIO WIDGET ──────────────────────────────────────────────────────────
@@ -186,7 +214,7 @@ function _buildObs(obsId) {
 // ─── BIO-INPUT ROWS ────────────────────────────────────────────────────────
 
 export function addFoodInputRow() {
-  _inputRows.push({ product_id: '', qty: '', total_liquid: '' });
+  _inputRows.push({ product_id: '', qty: '' });
   _renderInputRows();
 }
 
@@ -200,6 +228,7 @@ function _renderInputRows() {
   if (!el) return;
   if (!_inputRows.length) {
     el.innerHTML = `<div style="font-size:.75rem;font-family:sans-serif;color:var(--tm);font-style:italic;padding:.2rem 0;">Sin insumos agregados.</div>`;
+    _updateApplyLiquidVisibility();
     return;
   }
   // aplic-insumos necesita registrar tanto el ingrediente activo como el volumen total
@@ -214,21 +243,12 @@ function _renderInputRows() {
         <button onclick="removeFoodInputRow(${i})"
                 style="background:none;border:none;color:var(--clay);font-size:1.25rem;cursor:pointer;padding:.05rem .3rem;line-height:1;flex-shrink:0;">×</button>
       </div>
-      <div id="fi-grid-${i}" style="display:grid;grid-template-columns:1fr;gap:.5rem;">
-        <div>
-          <div style="font-size:.65rem;font-family:sans-serif;color:var(--tm);margin-bottom:.25rem;" id="fi-lbl-qty-${i}">Ingrediente activo</div>
-          <input type="number" step="0.01" min="0" placeholder="Cant."
-                 style="width:100%;background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
-                        padding:.6rem .65rem;font-size:.82rem;font-family:sans-serif;color:var(--brown);outline:none;"
-                 id="fi-qty-${i}" value="${row.qty}" oninput="window._fic(${i},'qty',this.value)">
-        </div>
-        <div id="fi-liq-wrap-${i}" style="display:none;">
-          <div style="font-size:.65rem;font-family:sans-serif;color:var(--tm);margin-bottom:.25rem;" id="fi-lbl-liq-${i}">Líquido total aplicado</div>
-          <input type="number" step="0.01" min="0" placeholder="Total"
-                 style="width:100%;background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
-                        padding:.6rem .65rem;font-size:.82rem;font-family:sans-serif;color:var(--brown);outline:none;"
-                 id="fi-liq-${i}" value="${row.total_liquid}" oninput="window._fic(${i},'total_liquid',this.value)">
-        </div>
+      <div>
+        <div style="font-size:.65rem;font-family:sans-serif;color:var(--tm);margin-bottom:.25rem;" id="fi-lbl-qty-${i}">Ingrediente activo</div>
+        <input type="number" step="0.01" min="0" placeholder="Cant."
+               style="width:100%;background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
+                      padding:.6rem .65rem;font-size:.82rem;font-family:sans-serif;color:var(--brown);outline:none;"
+               id="fi-qty-${i}" value="${row.qty}" oninput="window._fic(${i},'qty',this.value)">
       </div>
     </div>` : `
     <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem;">
@@ -248,6 +268,24 @@ function _renderInputRows() {
     const s = document.getElementById(`fi-prod-${i}`);
     if (s && row.product_id) { s.value = row.product_id; window._foodBioUnit(i); }
   });
+  _updateApplyLiquidVisibility();
+}
+
+// Shows the single "Líquido total aplicado" field (aplic-insumos) when at least
+// one chosen insumo is liquid (unit "L") — varios bioles pueden mezclarse en la
+// misma bomba, así que el total se registra una sola vez, no por insumo.
+function _updateApplyLiquidVisibility() {
+  const wrap = document.getElementById('apply-liq-wrap');
+  if (!wrap) return;
+  const hasLiquid = _inputRows.some(r => {
+    const bio = (_cats?.bio || []).find(b => b.id === r.product_id);
+    return (bio?.unit || '').toLowerCase() === 'l';
+  });
+  wrap.style.display = hasLiquid ? '' : 'none';
+  if (!hasLiquid) {
+    const input = document.getElementById('f-total-liquid');
+    if (input) input.value = '';
+  }
 }
 
 // ─── PREP-BED ROWS (multiple beds for prep-cama) ───────────────────────────
@@ -303,7 +341,7 @@ function _renderPrepBedRows() {
       const b = document.getElementById(`pb-bed-${i}`);
       if (b) {
         b.innerHTML = _bedOptsByArea(row.area_id, row.subarea_id || '', '— Cama —');
-        if (row.bed_id) b.value = row.bed_id;
+        if (row.bed_id) _ensureBedOption(`pb-bed-${i}`, row.bed_id);
       }
     }
   });
@@ -418,7 +456,7 @@ function _renderHarvestRows() {
       const b = document.getElementById(`hr-bed-${i}`);
       if (b) {
         b.innerHTML = _bedOptsByArea(row.area_id, row.subarea_id || '', '— Cama —');
-        if (row.bed_id) b.value = row.bed_id;
+        if (row.bed_id) _ensureBedOption(`hr-bed-${i}`, row.bed_id);
       }
     }
     const cropEl = document.getElementById(`hr-crop-${i}`);
@@ -612,15 +650,23 @@ const FORMS = {
       </div>
       <div class="fg">
         <label>Tipo de material</label>
-        <select id="f-material">
+        <select id="f-material" onchange="window._foodMaterialUnit()">
           <option value="">— Seleccionar —</option>
           <option value="semilla">Semilla</option>
           <option value="estaca">Estaca</option>
           <option value="almácigo">Almácigo (transplante)</option>
         </select>
       </div>
-      <div class="fg"><label>Densidad / Cantidad</label>
-        <input type="text" id="f-density" placeholder="Ej: 200 semillas, 3 plantas/m²"></div>
+      <div class="fg"><label>Cantidad</label>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <input type="text" inputmode="decimal" id="f-density" placeholder="Ej: 200"
+                 style="flex:1;background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
+                        padding:.6rem .75rem;font-size:.85rem;font-family:sans-serif;color:var(--brown);outline:none;"
+                 oninput="window._foodDensityInput(this)">
+          <span id="f-density-unit" style="flex-shrink:0;font-size:.78rem;font-family:sans-serif;color:var(--tm);"></span>
+        </div>
+        <div id="f-density-err" style="display:none;color:var(--clay);font-size:.7rem;font-family:sans-serif;margin-top:.35rem;">Solo se pueden ingresar números.</div>
+      </div>
       ${_workersField()}
       <div class="fg"><label>Observaciones</label>${_aw('obs', 'Observaciones o dicta nota de voz...')}</div>
       ${photoUploadWidget('food-photos')}`,
@@ -628,6 +674,7 @@ const FORMS = {
       // Load all beds initially (no area filter)
       const bedSel = document.getElementById('f-bed');
       if (bedSel) bedSel.innerHTML = _bedOptsByArea('');
+      window._foodMaterialUnit();
     },
   },
 
@@ -673,7 +720,6 @@ const FORMS = {
         <select id="f-method">
           <option value="">— Seleccionar —</option>
           <option value="foliar">Foliar</option>
-          <option value="drench">Drench (suelo empapado)</option>
           <option value="al suelo">Al suelo</option>
           <option value="fertiriego">Fertiriego</option>
         </select>
@@ -686,6 +732,16 @@ const FORMS = {
         <label>Insumos biológicos aplicados</label>
         <div class="doc-note" style="margin-bottom:.6rem;">
           Ej: 3 bombas de 18L con 1L de Emulsión de Pescado c/u → Ingrediente activo: <strong>3L</strong> · Líquido total aplicado: <strong>54L</strong>.
+        </div>
+        <div id="apply-liq-wrap" style="display:none;margin-bottom:.7rem;">
+          <div style="font-size:.65rem;font-family:sans-serif;color:var(--tm);margin-bottom:.25rem;">Líquido total aplicado (L)</div>
+          <input type="number" step="0.01" min="0" placeholder="Ej: 54"
+                 style="width:100%;background:white;border:1px solid rgba(84,66,54,.2);border-radius:8px;
+                        padding:.6rem .65rem;font-size:.82rem;font-family:sans-serif;color:var(--brown);outline:none;"
+                 id="f-total-liquid">
+          <div class="doc-note" style="margin-top:.3rem;">
+            Un solo total para todos los insumos líquidos de esta aplicación (ej: si mezclaste 2 bioles en la misma bomba, no hace falta repetirlo por insumo).
+          </div>
         </div>
         <div id="food-input-rows" style="margin-top:.4rem;"></div>
         <button type="button" onclick="addFoodInputRow()" class="add-row-btn">+ Agregar insumo</button>
@@ -836,9 +892,10 @@ function _updateApplyScopeUI() {
 
 // ─── OPEN FORM ─────────────────────────────────────────────────────────────
 
-export function openFoodForm(type) {
+export async function openFoodForm(type, record = null) {
   stopRec();
   _activeForm  = type;
+  _editing     = record ? { id: record.id } : null;
   _inputRows   = [];
   _availRows   = [];
   _prepBedRows = [];
@@ -848,17 +905,29 @@ export function openFoodForm(type) {
   const def = FORMS[type];
   if (!def) return;
 
-  document.getElementById('ft').textContent = def.title;
-  document.getElementById('fs-back').onclick = () => { stopRec(); openFood(); };
+  if (!_cats) await _loadCats();
+
+  const title = record ? `Editar: ${def.title}` : def.title;
+  document.getElementById('ft').textContent = title;
+  document.getElementById('fs-back').onclick = () => {
+    stopRec();
+    record ? window._backToRecordsList() : openFood();
+  };
+  const okBlock = record
+    ? `<div class="ok-msg" id="food-ok">
+        <p id="food-ok-txt">✅ Cambios guardados.</p>
+        <button class="btn-sub" style="margin-top:.7rem;" onclick="window._backToRecordsList()">Volver a la lista</button>
+      </div>`
+    : `<div class="ok-msg" id="food-ok">
+        <p id="food-ok-txt">✅ Guardado correctamente.</p>
+        <button class="btn-sub green" style="margin-top:.7rem;" onclick="openFoodForm('${type}')">Agregar otro registro</button>
+      </div>`;
   document.getElementById('fbody').innerHTML = `
-    <h2 style="font-size:1.05rem;font-weight:normal;font-style:italic;color:var(--brown);margin-bottom:1.1rem;">${def.title}</h2>
+    <h2 style="font-size:1.05rem;font-weight:normal;font-style:italic;color:var(--brown);margin-bottom:1.1rem;">${title}</h2>
     ${def.build()}
-    <button class="btn-sub" id="food-btn-sub" onclick="submitFoodForm()">Guardar registro</button>
+    <button class="btn-sub" id="food-btn-sub" onclick="submitFoodForm()">${record ? 'Guardar cambios' : 'Guardar registro'}</button>
     <div class="fnote">Los datos se guardan en la base de datos de Tierramor.</div>
-    <div class="ok-msg" id="food-ok">
-      <p id="food-ok-txt">✅ Guardado correctamente.</p>
-      <button class="btn-sub green" style="margin-top:.7rem;" onclick="openFoodForm('${type}')">Agregar otro registro</button>
-    </div>
+    ${okBlock}
     <div id="food-err" style="display:none;background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.3);
                               border-radius:10px;padding:1rem;text-align:center;margin-top:.9rem;">
       <p style="font-size:.82rem;font-family:sans-serif;color:#c0392b;" id="food-err-txt"></p>
@@ -868,8 +937,91 @@ export function openFoodForm(type) {
   if (dateEl) dateEl.value = new Date().toISOString().slice(0, 10);
 
   if (def.afterRender) def.afterRender();
+  if (record) _prefillFoodForm(type, record);
 
   show('fs');
+}
+
+// ─── PREFILL (modo edición, admin) ─────────────────────────────────────────
+// Nota: los "Participantes" quedan sin re-seleccionar (se guardaron como texto
+// libre dentro de observations); el texto completo sigue visible y editable ahí.
+
+function _setVal(id, val) {
+  const el = document.getElementById(id);
+  if (el && val !== undefined && val !== null) el.value = val;
+}
+
+function _prefillFoodForm(type, record) {
+  _setVal('f-fecha', record.date);
+  const beds = _cats?.beds || [];
+
+  switch (type) {
+    case 'siembra': {
+      const bed = beds.find(b => b.id === record.bed_id);
+      _prefillAreaCascade('f-area', 'f-subarea', 'f-bed', bed?.area_id || '', bed?.subarea_id || '', record.bed_id);
+      _setVal('f-crop', record.crop_id);
+      _setVal('f-material', record.material_type || '');
+      window._foodMaterialUnit();
+      _setVal('f-density', record.quantity_density ?? '');
+      _setVal('ta-obs', record.observations || '');
+      break;
+    }
+
+    case 'prep-cama': {
+      const bed = beds.find(b => b.id === record.bed_id);
+      _prepBedRows = [{ area_id: bed?.area_id || '', subarea_id: bed?.subarea_id || '', bed_id: record.bed_id }];
+      _renderPrepBedRows();
+      _inputRows = (record.bed_preparation_inputs || []).map(i => ({ product_id: i.bio_product_id, qty: String(i.quantity) }));
+      _renderInputRows();
+      _setVal('ta-obs', record.observations || '');
+      break;
+    }
+
+    case 'aplic-insumos': {
+      _setVal('f-area', record.area_id);
+      window._foodApplyAreaChanged();
+      _setVal('f-method', record.method || '');
+      _inputRows = (record.input_application_items || []).map(i => ({ product_id: i.bio_product_id, qty: String(i.quantity) }));
+      _renderInputRows();
+      _setVal('f-total-liquid', record.total_liquid_quantity ?? '');
+      _setVal('ta-obs', record.observations || '');
+      break;
+    }
+
+    case 'mantenimiento': {
+      _setVal('f-area', record.area_id);
+      window._foodAreaChanged('f-area', 'f-subarea', 'f-bed');
+      (record.maintenance_types || []).forEach(v => {
+        const cb = document.querySelector(`input[name="mt"][value="${v}"]`);
+        if (cb) cb.checked = true;
+      });
+      _setVal('f-duration', record.duration_minutes ?? '');
+      _setVal('ta-obs', record.observations || '');
+      break;
+    }
+
+    case 'disponibilidad': {
+      _setVal('f-week', record.week_ref);
+      _setVal('f-fecha', record.survey_date);
+      _availRows = (record.weekly_availability_items || []).map(i => ({
+        crop_id: i.crop_id, area_id: i.area_id, subarea_id: '', bed_id: '',
+        qty: String(i.estimated_quantity), unit: i.unit || '',
+      }));
+      _renderAvailRows();
+      _setVal('ta-obs', record.observations || '');
+      break;
+    }
+
+    case 'cosecha': {
+      _harvestRows = [{
+        crop_id: record.crop_id, area_id: record.area_id, subarea_id: '', bed_id: record.bed_id,
+        qty: String(record.real_quantity), unit: record.unit || '',
+      }];
+      _renderHarvestRows();
+      _setVal('ta-obs', record.observations || '');
+      break;
+    }
+  }
 }
 
 // ─── SUBMIT ────────────────────────────────────────────────────────────────
@@ -916,18 +1068,27 @@ export async function submitFoodForm() {
           _cats = null; // invalidate cache so crop appears on next load
         }
         if (!crop_id) throw new Error('Seleccioná el cultivo.');
+        if (density && !/^\d+(\.\d+)?$/.test(density)) throw new Error('La cantidad solo puede contener números.');
 
-        const qty_density = [material, density].filter(Boolean).join(' · ') || null;
-        await _api('/api/food/plantings', 'POST', {
+        const plantingFields = {
           date, bed_id, crop_id,
-          quantity_density: qty_density,
-          performed_by: userId, created_by: userId,
+          material_type: material || null,
+          quantity_density: density ? parseFloat(density) : null,
           observations: obs,
-        });
+        };
 
-        okEl.style.display = 'block';
-        document.getElementById('food-ok-txt').textContent = '✅ Siembra registrada. El ID de lote fue generado automáticamente.';
-        btn.textContent = 'Guardado ✓';
+        if (_editing) {
+          await _api(`/api/food/plantings/${_editing.id}`, 'PATCH', plantingFields);
+          okEl.style.display = 'block';
+          btn.textContent = 'Guardado ✓';
+        } else {
+          await _api('/api/food/plantings', 'POST', {
+            ...plantingFields, performed_by: userId, created_by: userId,
+          });
+          okEl.style.display = 'block';
+          document.getElementById('food-ok-txt').textContent = '✅ Siembra registrada. El ID de lote fue generado automáticamente.';
+          btn.textContent = 'Guardado ✓';
+        }
         break;
       }
 
@@ -937,15 +1098,24 @@ export async function submitFoodForm() {
         const inputs = _inputRows
           .filter(r => r.product_id && r.qty)
           .map(r => ({ bio_product_id: r.product_id, quantity: parseFloat(r.qty) }));
-        await Promise.all(validBeds.map(r =>
-          _api('/api/food/bed-preparations', 'POST', {
-            date, bed_id: r.bed_id,
-            performed_by: userId, created_by: userId,
-            observations: obs, inputs,
-          })
-        ));
-        okEl.style.display = 'block';
-        btn.textContent = `Guardado ✓ (${validBeds.length} cama${validBeds.length > 1 ? 's' : ''})`;
+
+        if (_editing) {
+          await _api(`/api/food/bed-preparations/${_editing.id}`, 'PATCH', {
+            date, bed_id: validBeds[0].bed_id, observations: obs, inputs,
+          });
+          okEl.style.display = 'block';
+          btn.textContent = 'Guardado ✓';
+        } else {
+          await Promise.all(validBeds.map(r =>
+            _api('/api/food/bed-preparations', 'POST', {
+              date, bed_id: r.bed_id,
+              performed_by: userId, created_by: userId,
+              observations: obs, inputs,
+            })
+          ));
+          okEl.style.display = 'block';
+          btn.textContent = `Guardado ✓ (${validBeds.length} cama${validBeds.length > 1 ? 's' : ''})`;
+        }
         break;
       }
 
@@ -953,13 +1123,11 @@ export async function submitFoodForm() {
         const area_id = document.getElementById('f-area')?.value;
         if (!area_id) throw new Error('Seleccioná el área.');
         const method = document.getElementById('f-method')?.value || null;
+        const totalLiquidRaw = document.getElementById('f-total-liquid')?.value;
+        const totalLiquid    = totalLiquidRaw ? parseFloat(totalLiquidRaw) : null;
         const items  = _inputRows
           .filter(r => r.product_id && r.qty)
-          .map(r => ({
-            bio_product_id: r.product_id,
-            quantity: parseFloat(r.qty),
-            total_liquid_quantity: r.total_liquid ? parseFloat(r.total_liquid) : null,
-          }));
+          .map(r => ({ bio_product_id: r.product_id, quantity: parseFloat(r.qty) }));
         // Include specific beds in observations if scope = beds
         const bedNote = _applyScope === 'beds' && _applyBedRows.length
           ? `Camas: ${_applyBedRows.map(r => {
@@ -970,11 +1138,20 @@ export async function submitFoodForm() {
         const fullObs = [bedNote, document.getElementById('ta-obs')?.value?.trim(),
                          _getParticipants() ? `Participantes: ${_getParticipants()}` : null]
                         .filter(Boolean).join('\n\n') || null;
-        await _api('/api/food/input-applications', 'POST', {
-          date, area_id, method,
-          performed_by: userId, created_by: userId,
-          observations: fullObs, items,
-        });
+
+        if (_editing) {
+          await _api(`/api/food/input-applications/${_editing.id}`, 'PATCH', {
+            date, area_id, method, total_liquid_quantity: totalLiquid,
+            observations: fullObs, items,
+          });
+        } else {
+          await _api('/api/food/input-applications', 'POST', {
+            date, area_id, method,
+            total_liquid_quantity: totalLiquid,
+            performed_by: userId, created_by: userId,
+            observations: fullObs, items,
+          });
+        }
         okEl.style.display = 'block';
         btn.textContent = 'Guardado ✓';
         break;
@@ -993,13 +1170,20 @@ export async function submitFoodForm() {
                          document.getElementById('ta-obs')?.value?.trim(),
                          _getParticipants() ? `Participantes: ${_getParticipants()}` : null]
                         .filter(Boolean).join('\n\n') || null;
-        await _api('/api/food/area-maintenance', 'POST', {
+        const maintFields = {
           date, area_id,
           maintenance_types: types,
           duration_minutes: parseInt(document.getElementById('f-duration')?.value) || null,
-          performed_by: userId, created_by: userId,
           observations: fullObs,
-        });
+        };
+
+        if (_editing) {
+          await _api(`/api/food/area-maintenance/${_editing.id}`, 'PATCH', maintFields);
+        } else {
+          await _api('/api/food/area-maintenance', 'POST', {
+            ...maintFields, performed_by: userId, created_by: userId,
+          });
+        }
         okEl.style.display = 'block';
         btn.textContent = 'Guardado ✓';
         break;
@@ -1009,8 +1193,10 @@ export async function submitFoodForm() {
         const week_ref    = document.getElementById('f-week')?.value;
         const responsible = document.getElementById('f-responsible')?.value?.trim();
         if (!week_ref) throw new Error('Seleccioná la semana.');
-        const check = await _api('/api/food/availability/check', 'POST', { week_ref });
-        if (check.exists) throw new Error(`Ya existe una disponibilidad para ${week_ref}.`);
+        if (!_editing) {
+          const check = await _api('/api/food/availability/check', 'POST', { week_ref });
+          if (check.exists) throw new Error(`Ya existe una disponibilidad para ${week_ref}.`);
+        }
         const items = _availRows
           .filter(r => r.crop_id && r.area_id && r.qty)
           .map(r => ({ crop_id: r.crop_id, area_id: r.area_id, estimated_quantity: parseFloat(r.qty), unit: r.unit || '' }));
@@ -1018,12 +1204,19 @@ export async function submitFoodForm() {
         const fullObs = [responsible ? `Responsable: ${responsible}` : null,
                          document.getElementById('ta-obs')?.value?.trim()]
                         .filter(Boolean).join('\n\n') || null;
-        await _api('/api/food/availability', 'POST', {
-          survey_date: date, week_ref,
-          created_by: userId,
-          observations: fullObs,
-          items,
-        });
+
+        if (_editing) {
+          await _api(`/api/food/availability/${_editing.id}`, 'PATCH', {
+            survey_date: date, week_ref, observations: fullObs, items,
+          });
+        } else {
+          await _api('/api/food/availability', 'POST', {
+            survey_date: date, week_ref,
+            created_by: userId,
+            observations: fullObs,
+            items,
+          });
+        }
         okEl.style.display = 'block';
         btn.textContent = 'Guardado ✓';
         break;
@@ -1032,21 +1225,32 @@ export async function submitFoodForm() {
       case 'cosecha': {
         const validRows = _harvestRows.filter(r => r.crop_id && r.area_id && r.bed_id && r.qty && r.unit);
         if (!validRows.length) throw new Error('Completá al menos una fila con cultivo, área, cama, cantidad y unidad.');
-        await Promise.all(validRows.map(r => _api('/api/food/harvests', 'POST', {
-          date,
-          crop_id: r.crop_id,
-          area_id: r.area_id,
-          bed_id: r.bed_id,
-          real_quantity: parseFloat(r.qty),
-          unit: r.unit,
-          performed_by: userId,
-          created_by: userId,
-          observations: obs,
-        })));
-        okEl.style.display = 'block';
-        btn.textContent = `Guardado ✓ (${validRows.length} registro${validRows.length > 1 ? 's' : ''})`;
+
+        if (_editing) {
+          const r = validRows[0];
+          await _api(`/api/food/harvests/${_editing.id}`, 'PATCH', {
+            date, crop_id: r.crop_id, area_id: r.area_id, bed_id: r.bed_id,
+            real_quantity: parseFloat(r.qty), unit: r.unit, observations: obs,
+          });
+          okEl.style.display = 'block';
+          btn.textContent = 'Guardado ✓';
+        } else {
+          await Promise.all(validRows.map(r => _api('/api/food/harvests', 'POST', {
+            date,
+            crop_id: r.crop_id,
+            area_id: r.area_id,
+            bed_id: r.bed_id,
+            real_quantity: parseFloat(r.qty),
+            unit: r.unit,
+            performed_by: userId,
+            created_by: userId,
+            observations: obs,
+          })));
+          okEl.style.display = 'block';
+          btn.textContent = `Guardado ✓ (${validRows.length} registro${validRows.length > 1 ? 's' : ''})`;
+        }
         _harvestRows = [];
-        _loadRecentHarvests();
+        _loadRecentHarvests().catch(() => {});
         break;
       }
 
@@ -1063,7 +1267,7 @@ export async function submitFoodForm() {
     errTxt.textContent  = e.message;
     errEl.style.display = 'block';
     btn.disabled        = false;
-    btn.textContent     = 'Guardar registro';
+    btn.textContent     = _editing ? 'Guardar cambios' : 'Guardar registro';
   }
 }
 
@@ -1150,6 +1354,23 @@ window._foodHarvestUnit = (i) => {
   }
 };
 
+// Unidad implícita por tipo de material sembrado (Registrar Siembra)
+const MATERIAL_UNITS = { semilla: 'semillas', estaca: 'estacas', 'almácigo': 'plantas' };
+
+window._foodMaterialUnit = () => {
+  const material = document.getElementById('f-material')?.value;
+  const unitEl = document.getElementById('f-density-unit');
+  if (unitEl) unitEl.textContent = MATERIAL_UNITS[material] || '';
+};
+
+// Filtra caracteres no numéricos en tiempo real y muestra el aviso si se intentó texto
+window._foodDensityInput = (el) => {
+  const errEl = document.getElementById('f-density-err');
+  const cleaned = el.value.replace(/[^0-9.]/g, '');
+  if (errEl) errEl.style.display = cleaned !== el.value ? '' : 'none';
+  el.value = cleaned;
+};
+
 window._foodAvailUnit = (i) => {
   const id   = document.getElementById(`av-crop-${i}`)?.value;
   const crop = (_cats?.crops || []).find(c => c.id === id);
@@ -1165,25 +1386,13 @@ window._foodBioUnit = (i) => {
   const id  = document.getElementById(`fi-prod-${i}`)?.value;
   const bio = (_cats?.bio || []).find(b => b.id === id);
   const unit = bio?.unit || '';
-  const isLiquid = unit.toLowerCase() === 'l';
 
   const unitEl = document.getElementById(`fi-unit-${i}`);
   if (unitEl) unitEl.textContent = unit;
   const lblQty = document.getElementById(`fi-lbl-qty-${i}`);
   if (lblQty) lblQty.textContent = unit ? `Ingrediente activo (${unit})` : 'Ingrediente activo';
-  const lblLiq = document.getElementById(`fi-lbl-liq-${i}`);
-  if (lblLiq) lblLiq.textContent = unit ? `Líquido total aplicado (${unit})` : 'Líquido total aplicado';
 
-  // El campo de líquido total sólo aplica a insumos que se diluyen en agua (medidos en L)
-  const grid = document.getElementById(`fi-grid-${i}`);
-  const liqWrap = document.getElementById(`fi-liq-wrap-${i}`);
-  if (grid) grid.style.gridTemplateColumns = isLiquid ? '1fr 1fr' : '1fr';
-  if (liqWrap) liqWrap.style.display = isLiquid ? '' : 'none';
-  if (!isLiquid) {
-    const liqInput = document.getElementById(`fi-liq-${i}`);
-    if (liqInput) liqInput.value = '';
-    if (_inputRows[i]) _inputRows[i].total_liquid = '';
-  }
+  _updateApplyLiquidVisibility();
 };
 
 // Workers multi-select dropdown

@@ -14,6 +14,7 @@ let _batchInputRows     = [];  // raw materials consumed rows (abrir-lote)
 let _activeForm         = null;
 let _closingBatch       = null;  // batch object selected in the close picker
 let _finishedStockCache = null;  // v_bio_finished_product_stock rows, refreshed each time salida opens
+let _editing            = null;  // registro completo en edición (admin), null si es carga nueva
 
 // ─── API ───────────────────────────────────────────────────────────────────
 
@@ -309,10 +310,16 @@ const FORMS = {
         <div class="doc-note">El stock no se descuenta al abrir el lote — se descuenta al cerrarlo.</div>
         <div id="batch-input-rows" style="margin-top:.4rem;"></div>
         <button type="button" onclick="addBatchInputRow()" class="add-row-btn">+ Agregar materia prima</button>
-      </div>`,
+      </div>
+      ${_editing?.status === 'closed' ? `
+        <div class="doc-note" style="margin-top:.3rem;">Este lote ya está cerrado — también podés corregir los datos de cierre.</div>
+        <div class="fg"><label>Fecha real de finalización</label><input type="date" id="f-fecha-finish"></div>
+        <div class="fg"><label>Cantidad de producto terminado obtenida</label><input type="number" step="0.001" min="0" id="f-qty-produced"></div>
+        <div class="fg"><label>Observaciones de cierre</label>${_aw('closure-obs', 'Observaciones de cierre...')}</div>
+      ` : ''}`,
     afterRender: () => {
       _selectPerformedByDefault('f-responsible-sel');
-      addBatchInputRow();
+      if (!_editing) addBatchInputRow();
     },
   },
 
@@ -358,29 +365,42 @@ const FORMS = {
 
 // ─── OPEN FORM ─────────────────────────────────────────────────────────────
 
-export function openBioForm(type) {
+export async function openBioForm(type, record = null) {
   stopRec();
   _activeForm = type;
+  _editing = record || null;
   _batchInputRows = [];
 
   const def = FORMS[type];
   if (!def) return;
 
-  document.getElementById('ft').textContent = def.title;
-  document.getElementById('fs-back').onclick = () => { stopRec(); openBio(); };
+  if (!_cats) await _loadCats();
+
+  const title = record ? `Editar: ${def.title}` : def.title;
+  document.getElementById('ft').textContent = title;
+  document.getElementById('fs-back').onclick = () => {
+    stopRec();
+    record ? window._backToRecordsList() : openBio();
+  };
+  const okBlock = record
+    ? `<div class="ok-msg" id="bio-ok">
+        <p id="bio-ok-txt">✅ Cambios guardados.</p>
+        <button class="btn-sub" style="margin-top:.7rem;" onclick="window._backToRecordsList()">Volver a la lista</button>
+      </div>`
+    : `<div class="ok-msg" id="bio-ok">
+        <p id="bio-ok-txt">✅ Guardado correctamente.</p>
+        <button class="btn-sub green" style="margin-top:.7rem;" onclick="openBioForm('${type}')">Agregar otro registro</button>
+      </div>`;
   document.getElementById('fbody').innerHTML = `
-    <h2 style="font-size:1.05rem;font-weight:normal;font-style:italic;color:var(--brown);margin-bottom:1.1rem;">${def.title}</h2>
+    <h2 style="font-size:1.05rem;font-weight:normal;font-style:italic;color:var(--brown);margin-bottom:1.1rem;">${title}</h2>
     ${def.build()}
-    <button class="btn-sub" id="bio-btn-sub" onclick="submitBioForm()">Guardar registro</button>
+    <button class="btn-sub" id="bio-btn-sub" onclick="submitBioForm()">${record ? 'Guardar cambios' : 'Guardar registro'}</button>
     <div class="fnote">Los datos se guardan en la base de datos de Tierramor.</div>
     <div id="bio-warn" style="display:none;background:rgba(233,196,106,.18);border:1px solid rgba(201,168,76,.5);
                               border-radius:10px;padding:.9rem 1rem;margin-top:.9rem;">
       <p style="font-size:.78rem;font-family:sans-serif;color:#8a6d1f;" id="bio-warn-txt"></p>
     </div>
-    <div class="ok-msg" id="bio-ok">
-      <p id="bio-ok-txt">✅ Guardado correctamente.</p>
-      <button class="btn-sub green" style="margin-top:.7rem;" onclick="openBioForm('${type}')">Agregar otro registro</button>
-    </div>
+    ${okBlock}
     <div id="bio-err" style="display:none;background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.3);
                               border-radius:10px;padding:1rem;text-align:center;margin-top:.9rem;">
       <p style="font-size:.82rem;font-family:sans-serif;color:#c0392b;" id="bio-err-txt"></p>
@@ -390,8 +410,65 @@ export function openBioForm(type) {
   if (dateEl) dateEl.value = new Date().toISOString().slice(0, 10);
 
   if (def.afterRender) def.afterRender();
+  if (record) _prefillBioForm(type, record);
 
   show('fs');
+}
+
+// ─── PREFILL (modo edición, admin) ─────────────────────────────────────────
+
+function _setBioVal(id, val) {
+  const el = document.getElementById(id);
+  if (el && val !== undefined && val !== null) el.value = val;
+}
+
+function _prefillBioForm(type, record) {
+  switch (type) {
+    case 'entrada': {
+      _setBioVal('f-fecha', record.date);
+      _setBioVal('f-raw', record.raw_material_id);
+      window._bioRawEntradaUnit();
+      _setBioVal('f-qty', record.quantity);
+      _setBioVal('f-type', record.type);
+      window._bioEntradaTypeChanged();
+      _setBioVal('f-supplier', record.supplier || '');
+      _setBioVal('f-cost', record.cost ?? '');
+      _setBioVal('f-performed', record.performed_by);
+      _setBioVal('ta-obs', record.observations || '');
+      break;
+    }
+
+    case 'abrir-lote': {
+      _setBioVal('f-fecha', record.date_start);
+      _setBioVal('f-product', record.finished_product_id);
+      _setBioVal('f-est-finish', record.estimated_finish_date || '');
+      _setBioVal('f-responsible-sel', record.responsible_id);
+      _batchInputRows = (record.bio_production_batch_inputs || [])
+        .map(i => ({ raw_material_id: i.raw_material_id, quantity: String(i.quantity) }));
+      _renderBatchInputRows();
+      if (record.status === 'closed') {
+        _setBioVal('f-fecha-finish', record.date_finish || '');
+        _setBioVal('f-qty-produced', record.quantity_produced ?? '');
+        _setBioVal('ta-closure-obs', record.closure_observations || '');
+      }
+      break;
+    }
+
+    case 'salida': {
+      _setBioVal('f-fecha', record.date);
+      _setBioVal('f-product', record.finished_product_id);
+      window._bioSalidaProductChanged();
+      _setBioVal('f-qty', record.quantity);
+      _setBioVal('f-output-type', record.output_type);
+      window._bioSalidaTypeChanged();
+      _setBioVal('f-department', record.department || '');
+      _setBioVal('f-client', record.client_name || '');
+      _setBioVal('f-unit-price', record.unit_price ?? '');
+      _setBioVal('f-performed', record.performed_by);
+      _setBioVal('ta-obs', record.observations || '');
+      break;
+    }
+  }
 }
 
 // ─── CERRAR LOTE — picker + close form (dos pasos dentro de #fs) ──────────
@@ -529,12 +606,15 @@ export async function submitBioForm() {
         const supplier = isPurchased ? (document.getElementById('f-supplier')?.value?.trim() || null) : null;
         const cost = isPurchased ? (parseFloat(document.getElementById('f-cost')?.value) || null) : null;
 
-        await _api('/api/bio/raw-material-entries', 'POST', {
-          date, raw_material_id, quantity, unit, type,
-          supplier, cost,
-          performed_by, created_by: userId,
-          observations: obs,
-        });
+        const entradaFields = { date, raw_material_id, quantity, unit, type, supplier, cost, observations: obs };
+
+        if (_editing) {
+          await _api(`/api/bio/raw-material-entries/${_editing.id}`, 'PATCH', { ...entradaFields, performed_by });
+        } else {
+          await _api('/api/bio/raw-material-entries', 'POST', {
+            ...entradaFields, performed_by, created_by: userId,
+          });
+        }
         okEl.style.display = 'block';
         btn.textContent = 'Guardado ✓';
         break;
@@ -547,17 +627,30 @@ export async function submitBioForm() {
         const responsible_id = document.getElementById('f-responsible-sel')?.value || userId;
         const validRows = _batchInputRows.filter(r => r.raw_material_id && r.quantity);
         if (!validRows.length) throw new Error('Agregá al menos una materia prima consumida.');
+        const inputs = validRows.map(r => ({ raw_material_id: r.raw_material_id, quantity: parseFloat(r.quantity) }));
 
-        const batch = await _api('/api/bio/batches', 'POST', {
-          date_start: date,
-          finished_product_id,
-          estimated_finish_date,
-          responsible_id, created_by: userId,
-          inputs: validRows.map(r => ({ raw_material_id: r.raw_material_id, quantity: parseFloat(r.quantity) })),
-        });
-        okEl.style.display = 'block';
-        document.getElementById('bio-ok-txt').textContent = `✅ Lote ${batch.batch_code} abierto correctamente.`;
-        btn.textContent = 'Guardado ✓';
+        if (_editing) {
+          const patchBody = { date_start: date, finished_product_id, estimated_finish_date, responsible_id, inputs };
+          if (_editing.status === 'closed') {
+            patchBody.date_finish = document.getElementById('f-fecha-finish')?.value || null;
+            patchBody.quantity_produced = parseFloat(document.getElementById('f-qty-produced')?.value) || null;
+            patchBody.closure_observations = document.getElementById('ta-closure-obs')?.value?.trim() || null;
+          }
+          await _api(`/api/bio/batches/${_editing.id}`, 'PATCH', patchBody);
+          okEl.style.display = 'block';
+          btn.textContent = 'Guardado ✓';
+        } else {
+          const batch = await _api('/api/bio/batches', 'POST', {
+            date_start: date,
+            finished_product_id,
+            estimated_finish_date,
+            responsible_id, created_by: userId,
+            inputs,
+          });
+          okEl.style.display = 'block';
+          document.getElementById('bio-ok-txt').textContent = `✅ Lote ${batch.batch_code} abierto correctamente.`;
+          btn.textContent = 'Guardado ✓';
+        }
         _batchInputRows = [];
         break;
       }
@@ -599,13 +692,18 @@ export async function submitBioForm() {
         if (isExternal && (!client_name || !unit_price)) throw new Error('Completá cliente y precio unitario.');
         if (!isExternal && !department) throw new Error('Seleccioná el departamento.');
 
-        await _api('/api/bio/outputs', 'POST', {
+        const outputFields = {
           date, finished_product_id, quantity, output_type,
           department, client_name, unit_price,
           total_value: isExternal ? quantity * unit_price : null,
-          performed_by, created_by: userId,
           observations: obs,
-        });
+        };
+
+        if (_editing) {
+          await _api(`/api/bio/outputs/${_editing.id}`, 'PATCH', { ...outputFields, performed_by });
+        } else {
+          await _api('/api/bio/outputs', 'POST', { ...outputFields, performed_by, created_by: userId });
+        }
         okEl.style.display = 'block';
         btn.textContent = 'Guardado ✓';
         break;
@@ -619,7 +717,7 @@ export async function submitBioForm() {
     errTxt.textContent  = e.message;
     errEl.style.display = 'block';
     btn.disabled        = false;
-    btn.textContent     = _activeForm === 'cerrar-lote' ? 'Cerrar lote' : 'Guardar registro';
+    btn.textContent     = _activeForm === 'cerrar-lote' ? 'Cerrar lote' : (_editing ? 'Guardar cambios' : 'Guardar registro');
   }
 }
 

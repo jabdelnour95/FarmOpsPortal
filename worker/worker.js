@@ -156,7 +156,7 @@ async function sbPatch(env, path, filter, body) {
 async function sbDelete(env, path, filter) {
   return fetch(`${env.SUPABASE_URL}/rest/v1/${path}?${filter}`, {
     method: 'DELETE',
-    headers: sbHeaders(env),
+    headers: { ...sbHeaders(env), Prefer: 'return=representation' },
   });
 }
 
@@ -175,6 +175,14 @@ async function proxySb(request, res) {
     return errResponse(request, 'SUPABASE_ERROR', data.message || 'Error en base de datos', res.status, data);
   }
   return okResponse(request, data, res.status);
+}
+
+// Editar/borrar registros ya cargados (corrección de errores de carga) es admin-only.
+function requireAdmin(request, auth) {
+  if (auth.role !== 'admin') {
+    return errResponse(request, 'FORBIDDEN', 'Solo un administrador puede editar o borrar registros', 403);
+  }
+  return null;
 }
 
 // ─── AUTH ──────────────────────────────────────────────────────────────────
@@ -368,6 +376,7 @@ const CATALOG_TABLE = {
 // Tables that don't have a 'name' column for ordering
 const CATALOG_ORDER = {
   beds: 'code.asc',
+  'nursery-price-categories': 'size_label.asc',
 };
 
 async function handleCatalogs(request, env, auth) {
@@ -419,6 +428,13 @@ const FOOD_TABLE = {
   availability: 'weekly_availability',
 };
 
+// Selects con joins legibles para el listado de registros (admin). Sin entrada acá,
+// el GET genérico usa solo 'order=created_at.desc' (sin joins).
+const FOOD_LIST_SELECT = {
+  'area-maintenance': 'select=*,productive_areas(name)&',
+  harvests: 'select=*,crops(name),productive_areas(name),beds(code)&',
+};
+
 async function handleFood(request, env, auth) {
   const segments = new URL(request.url).pathname.split('/').filter(Boolean);
   // segments: ['api', 'food', ':resource', ':id?', ':action?']
@@ -428,49 +444,100 @@ async function handleFood(request, env, auth) {
 
   // ── bed-preparations (con array de inputs)
   if (resource === 'bed-preparations') {
-    if (request.method === 'GET') {
-      const res = await sbGet(env, 'bed_preparations', 'select=*,bed_preparation_inputs(*)&order=date.desc');
-      return proxySb(request, res);
-    }
-    if (request.method === 'POST') {
-      const { inputs = [], ...fields } = await request.json();
-      const prepRes = await sbPost(env, 'bed_preparations', fields);
-      if (!prepRes.ok) return proxySb(request, prepRes);
-      const prep = (await prepRes.json())[0];
-      if (inputs.length) {
-        await sbPost(env, 'bed_preparation_inputs', inputs.map(i => ({ ...i, preparation_id: prep.id })));
+    if (!itemId) {
+      if (request.method === 'GET') {
+        const res = await sbGet(env, 'bed_preparations', 'select=*,beds(code),bed_preparation_inputs(*)&order=date.desc');
+        return proxySb(request, res);
       }
-      return okResponse(request, prep, 201);
+      if (request.method === 'POST') {
+        const { inputs = [], ...fields } = await request.json();
+        const prepRes = await sbPost(env, 'bed_preparations', fields);
+        if (!prepRes.ok) return proxySb(request, prepRes);
+        const prep = (await prepRes.json())[0];
+        if (inputs.length) {
+          await sbPost(env, 'bed_preparation_inputs', inputs.map(i => ({ ...i, preparation_id: prep.id })));
+        }
+        return okResponse(request, prep, 201);
+      }
+    } else {
+      if (request.method === 'PATCH') {
+        const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+        const { inputs, ...fields } = await request.json();
+        if (Object.keys(fields).length) await sbPatch(env, 'bed_preparations', `id=eq.${itemId}`, fields);
+        if (inputs) {
+          await sbDelete(env, 'bed_preparation_inputs', `preparation_id=eq.${itemId}`);
+          if (inputs.length) await sbPost(env, 'bed_preparation_inputs', inputs.map(i => ({ ...i, preparation_id: itemId })));
+        }
+        const res = await sbGet(env, 'bed_preparations', `id=eq.${itemId}&select=*,bed_preparation_inputs(*)`);
+        return proxySb(request, res);
+      }
+      if (request.method === 'DELETE') {
+        const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+        const res = await sbDelete(env, 'bed_preparations', `id=eq.${itemId}`);
+        return proxySb(request, res);
+      }
     }
   }
 
   // ── plantings (lot_id generado por trigger en DB)
   if (resource === 'plantings') {
-    if (request.method === 'GET') {
-      const res = await sbGet(env, 'plantings', 'select=*,crops(name),beds(code)&order=date.desc');
-      return proxySb(request, res);
-    }
-    if (request.method === 'POST') {
-      const res = await sbPost(env, 'plantings', await request.json());
-      return proxySb(request, res);
+    if (!itemId) {
+      if (request.method === 'GET') {
+        const res = await sbGet(env, 'plantings', 'select=*,crops(name),beds(code)&order=date.desc');
+        return proxySb(request, res);
+      }
+      if (request.method === 'POST') {
+        const res = await sbPost(env, 'plantings', await request.json());
+        return proxySb(request, res);
+      }
+    } else {
+      if (request.method === 'PATCH') {
+        const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+        const res = await sbPatch(env, 'plantings', `id=eq.${itemId}`, await request.json());
+        return proxySb(request, res);
+      }
+      if (request.method === 'DELETE') {
+        const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+        const res = await sbDelete(env, 'plantings', `id=eq.${itemId}`);
+        return proxySb(request, res);
+      }
     }
   }
 
   // ── input-applications (con array de items)
   if (resource === 'input-applications') {
-    if (request.method === 'GET') {
-      const res = await sbGet(env, 'input_applications', 'select=*,input_application_items(*)&order=date.desc');
-      return proxySb(request, res);
-    }
-    if (request.method === 'POST') {
-      const { items = [], ...fields } = await request.json();
-      const appRes = await sbPost(env, 'input_applications', fields);
-      if (!appRes.ok) return proxySb(request, appRes);
-      const app = (await appRes.json())[0];
-      if (items.length) {
-        await sbPost(env, 'input_application_items', items.map(i => ({ ...i, application_id: app.id })));
+    if (!itemId) {
+      if (request.method === 'GET') {
+        const res = await sbGet(env, 'input_applications', 'select=*,productive_areas(name),input_application_items(*)&order=date.desc');
+        return proxySb(request, res);
       }
-      return okResponse(request, app, 201);
+      if (request.method === 'POST') {
+        const { items = [], ...fields } = await request.json();
+        const appRes = await sbPost(env, 'input_applications', fields);
+        if (!appRes.ok) return proxySb(request, appRes);
+        const app = (await appRes.json())[0];
+        if (items.length) {
+          await sbPost(env, 'input_application_items', items.map(i => ({ ...i, application_id: app.id })));
+        }
+        return okResponse(request, app, 201);
+      }
+    } else {
+      if (request.method === 'PATCH') {
+        const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+        const { items, ...fields } = await request.json();
+        if (Object.keys(fields).length) await sbPatch(env, 'input_applications', `id=eq.${itemId}`, fields);
+        if (items) {
+          await sbDelete(env, 'input_application_items', `application_id=eq.${itemId}`);
+          if (items.length) await sbPost(env, 'input_application_items', items.map(i => ({ ...i, application_id: itemId })));
+        }
+        const res = await sbGet(env, 'input_applications', `id=eq.${itemId}&select=*,input_application_items(*)`);
+        return proxySb(request, res);
+      }
+      if (request.method === 'DELETE') {
+        const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+        const res = await sbDelete(env, 'input_applications', `id=eq.${itemId}`);
+        return proxySb(request, res);
+      }
     }
   }
 
@@ -506,15 +573,53 @@ async function handleFood(request, env, auth) {
     return okResponse(request, avail, 201);
   }
 
-  // ── recursos simples con GET/POST genérico
+  // ── availability/:id (editar/borrar, admin) — distinto de /:id/publish arriba
+  if (resource === 'availability' && itemId && !action) {
+    if (request.method === 'PATCH') {
+      const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+      const { items, ...fields } = await request.json();
+      if (Object.keys(fields).length) await sbPatch(env, 'weekly_availability', `id=eq.${itemId}`, fields);
+      if (items) {
+        await sbDelete(env, 'weekly_availability_items', `availability_id=eq.${itemId}`);
+        if (items.length) await sbPost(env, 'weekly_availability_items', items.map(i => ({ ...i, availability_id: itemId })));
+      }
+      const res = await sbGet(env, 'weekly_availability', `id=eq.${itemId}&select=*,weekly_availability_items(*)`);
+      return proxySb(request, res);
+    }
+    if (request.method === 'DELETE') {
+      const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+      const res = await sbDelete(env, 'weekly_availability', `id=eq.${itemId}`);
+      return proxySb(request, res);
+    }
+  }
+
+  // ── recursos simples con GET/POST/PATCH/DELETE genérico
   const table = FOOD_TABLE[resource];
   if (table) {
     if (request.method === 'GET') {
-      const res = await sbGet(env, table, 'order=created_at.desc');
+      const select = resource === 'availability'
+        ? 'select=*,weekly_availability_items(*)&'
+        : (FOOD_LIST_SELECT[resource] || '');
+      const res = await sbGet(env, table, `${select}order=created_at.desc`);
       return proxySb(request, res);
     }
     if (request.method === 'POST') {
       const res = await sbPost(env, table, await request.json());
+      return proxySb(request, res);
+    }
+    if (itemId && request.method === 'PATCH') {
+      const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+      const res = await sbPatch(env, table, `id=eq.${itemId}`, await request.json());
+      return proxySb(request, res);
+    }
+    if (itemId && request.method === 'DELETE') {
+      const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+      // harvests → internal_invoices_food no tiene ON DELETE CASCADE (ver Docs/TDD.md);
+      // hay que borrar la factura generada por el trigger antes de borrar la cosecha.
+      if (resource === 'harvests') {
+        await sbDelete(env, 'internal_invoices_food', `harvest_id=eq.${itemId}`);
+      }
+      const res = await sbDelete(env, table, `id=eq.${itemId}`);
       return proxySb(request, res);
     }
   }
@@ -540,13 +645,23 @@ async function handleBio(request, env, auth) {
       const res = await sbPost(env, 'bio_raw_material_entries', await request.json());
       return proxySb(request, res);
     }
+    if (itemId && request.method === 'PATCH') {
+      const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+      const res = await sbPatch(env, 'bio_raw_material_entries', `id=eq.${itemId}`, await request.json());
+      return proxySb(request, res);
+    }
+    if (itemId && request.method === 'DELETE') {
+      const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+      const res = await sbDelete(env, 'bio_raw_material_entries', `id=eq.${itemId}`);
+      return proxySb(request, res);
+    }
   }
 
   // ── batches
   if (resource === 'batches') {
     if (!itemId) {
       if (request.method === 'GET') {
-        const res = await sbGet(env, 'bio_production_batches', 'select=*,bio_production_batch_inputs(*)&order=date_start.desc');
+        const res = await sbGet(env, 'bio_production_batches', 'select=*,bio_finished_products(name),bio_production_batch_inputs(*)&order=date_start.desc');
         return proxySb(request, res);
       }
       if (request.method === 'POST') {
@@ -597,6 +712,26 @@ async function handleBio(request, env, auth) {
         batch: (await closeRes.json())[0],
       });
     }
+
+    // PATCH/DELETE /api/bio/batches/:id (editar/borrar, admin) — distinto de /:id/close arriba
+    if (itemId && !action) {
+      if (request.method === 'PATCH') {
+        const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+        const { inputs, ...fields } = await request.json();
+        if (Object.keys(fields).length) await sbPatch(env, 'bio_production_batches', `id=eq.${itemId}`, fields);
+        if (inputs) {
+          await sbDelete(env, 'bio_production_batch_inputs', `batch_id=eq.${itemId}`);
+          if (inputs.length) await sbPost(env, 'bio_production_batch_inputs', inputs.map(i => ({ ...i, batch_id: itemId })));
+        }
+        const res = await sbGet(env, 'bio_production_batches', `id=eq.${itemId}&select=*,bio_production_batch_inputs(*)`);
+        return proxySb(request, res);
+      }
+      if (request.method === 'DELETE') {
+        const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+        const res = await sbDelete(env, 'bio_production_batches', `id=eq.${itemId}`);
+        return proxySb(request, res);
+      }
+    }
   }
 
   // ── outputs
@@ -607,6 +742,19 @@ async function handleBio(request, env, auth) {
     }
     if (request.method === 'POST') {
       const res = await sbPost(env, 'bio_finished_product_outputs', await request.json());
+      return proxySb(request, res);
+    }
+    if (itemId && request.method === 'PATCH') {
+      const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+      const res = await sbPatch(env, 'bio_finished_product_outputs', `id=eq.${itemId}`, await request.json());
+      return proxySb(request, res);
+    }
+    if (itemId && request.method === 'DELETE') {
+      const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+      // outputs (venta externa) → bio_external_invoices no tiene ON DELETE CASCADE
+      // (ver Docs/TDD.md); hay que borrar la factura generada por el trigger primero.
+      await sbDelete(env, 'bio_external_invoices', `output_id=eq.${itemId}`);
+      const res = await sbDelete(env, 'bio_finished_product_outputs', `id=eq.${itemId}`);
       return proxySb(request, res);
     }
   }
@@ -647,6 +795,16 @@ async function handleNursery(request, env, auth) {
       const res = await sbPost(env, 'nursery_raw_material_entries', await request.json());
       return proxySb(request, res);
     }
+    if (itemId && request.method === 'PATCH') {
+      const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+      const res = await sbPatch(env, 'nursery_raw_material_entries', `id=eq.${itemId}`, await request.json());
+      return proxySb(request, res);
+    }
+    if (itemId && request.method === 'DELETE') {
+      const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+      const res = await sbDelete(env, 'nursery_raw_material_entries', `id=eq.${itemId}`);
+      return proxySb(request, res);
+    }
   }
 
   // ── substrate-batches (con array de components)
@@ -665,6 +823,22 @@ async function handleNursery(request, env, auth) {
       }
       return okResponse(request, batch, 201);
     }
+    if (itemId && request.method === 'PATCH') {
+      const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+      const { components, ...fields } = await request.json();
+      if (Object.keys(fields).length) await sbPatch(env, 'substrate_batches', `id=eq.${itemId}`, fields);
+      if (components) {
+        await sbDelete(env, 'substrate_batch_components', `batch_id=eq.${itemId}`);
+        if (components.length) await sbPost(env, 'substrate_batch_components', components.map(c => ({ ...c, batch_id: itemId })));
+      }
+      const res = await sbGet(env, 'substrate_batches', `id=eq.${itemId}&select=*,substrate_batch_components(*)`);
+      return proxySb(request, res);
+    }
+    if (itemId && request.method === 'DELETE') {
+      const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+      const res = await sbDelete(env, 'substrate_batches', `id=eq.${itemId}`);
+      return proxySb(request, res);
+    }
   }
 
   // ── container-fills
@@ -675,6 +849,16 @@ async function handleNursery(request, env, auth) {
     }
     if (request.method === 'POST') {
       const res = await sbPost(env, 'container_fills', await request.json());
+      return proxySb(request, res);
+    }
+    if (itemId && request.method === 'PATCH') {
+      const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+      const res = await sbPatch(env, 'container_fills', `id=eq.${itemId}`, await request.json());
+      return proxySb(request, res);
+    }
+    if (itemId && request.method === 'DELETE') {
+      const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+      const res = await sbDelete(env, 'container_fills', `id=eq.${itemId}`);
       return proxySb(request, res);
     }
   }
@@ -691,6 +875,21 @@ async function handleNursery(request, env, auth) {
         const res = await sbPost(env, 'plant_lots', await request.json());
         return proxySb(request, res);
       }
+    }
+
+    // PATCH/DELETE /api/nursery/lots/:id (editar/borrar, admin)
+    if (itemId && !action && request.method === 'PATCH') {
+      const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+      const res = await sbPatch(env, 'plant_lots', `id=eq.${itemId}`, await request.json());
+      return proxySb(request, res);
+    }
+    if (itemId && !action && request.method === 'DELETE') {
+      const forbidden = requireAdmin(request, auth); if (forbidden) return forbidden;
+      // Las 6 tablas satélite del lote referencian plant_lots SIN ON DELETE CASCADE
+      // (ver Docs/TDD.md) — hay que limpiarlas primero o el DELETE falla por FK.
+      await Promise.all(Object.values(NURSERY_LOT_SUB).map(table => sbDelete(env, table, `lot_id=eq.${itemId}`)));
+      const res = await sbDelete(env, 'plant_lots', `id=eq.${itemId}`);
+      return proxySb(request, res);
     }
 
     // GET /api/nursery/lots/:id — detalle completo

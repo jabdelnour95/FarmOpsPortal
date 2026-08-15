@@ -22,6 +22,7 @@ import { openVivero, openNurseryForm, submitNurseryForm,
          addQuoteRow, removeQuoteRow,
          openNurseryLotPicker, openNurseryQuoteForm, openNurseryQuotes,
          openNurseryInventory } from './modules/nursery.js';
+import { openRecordsHome, openRecordsList, editRecord, deleteRecord } from './modules/records.js';
 
 // Expose to HTML event handlers (onclick attributes) and cross-module calls
 Object.assign(window, {
@@ -52,6 +53,8 @@ Object.assign(window, {
   addQuoteRow, removeQuoteRow,
   openNurseryLotPicker, openNurseryQuoteForm, openNurseryQuotes,
   openNurseryInventory,
+  // Records (admin: ver/editar/borrar registros de Finca)
+  openRecordsHome, openRecordsList, editRecord, deleteRecord,
   // Internal bindings used by navigation.js to avoid circular imports
   _openChecklistMenu: openChecklistMenu,
   _openInventarios:   openInventarios,

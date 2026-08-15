@@ -273,7 +273,8 @@ CREATE TABLE public.plantings (
   date             date NOT NULL,
   bed_id           uuid NOT NULL REFERENCES public.beds(id),
   crop_id          uuid NOT NULL REFERENCES public.crops(id),
-  quantity_density text,                   -- texto libre: "200 semillas", "3 plantas/m²"
+  material_type    text CHECK (material_type IN ('semilla','estaca','almácigo')),
+  quantity_density numeric(10,2),           -- cantidad numérica; la unidad se infiere de material_type en el frontend
   performed_by     uuid NOT NULL REFERENCES public.profiles(id),
   created_by       uuid NOT NULL REFERENCES public.profiles(id),
   observations     text,
@@ -282,28 +283,31 @@ CREATE TABLE public.plantings (
 );
 
 -- ── Aplicación de insumos a área ─────────────────────────────────────────────
+-- total_liquid_quantity = volumen total de líquido aplicado en campo en ESTA aplicación
+-- (activo + dilución de todos los insumos líquidos mezclados en la misma bomba), ej:
+-- 3 bombas de 18L con 1L de Emulsión c/u → total_liquid_quantity=54. Vive acá (a nivel de
+-- la aplicación) y no en input_application_items porque es un solo total por evento, no
+-- por insumo — si dos bioles líquidos se aplican juntos, comparten el mismo total.
 CREATE TABLE public.input_applications (
-  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  date          date NOT NULL,
-  area_id       uuid NOT NULL REFERENCES public.productive_areas(id),
-  method        text,   -- "foliar", "drench", "al suelo"
-  performed_by  uuid NOT NULL REFERENCES public.profiles(id),
-  created_by    uuid NOT NULL REFERENCES public.profiles(id),
-  observations  text,
-  photo_urls    text[],
-  created_at    timestamptz NOT NULL DEFAULT now()
+  id                     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  date                   date NOT NULL,
+  area_id                uuid NOT NULL REFERENCES public.productive_areas(id),
+  method                 text,   -- "foliar", "al suelo", "fertiriego"
+  total_liquid_quantity  numeric(10,3),
+  performed_by           uuid NOT NULL REFERENCES public.profiles(id),
+  created_by             uuid NOT NULL REFERENCES public.profiles(id),
+  observations           text,
+  photo_urls             text[],
+  created_at             timestamptz NOT NULL DEFAULT now()
 );
 
 -- TRIGGER: dispara salida de inventario en Biofábrica (ver sección 3.7)
 -- quantity = ingrediente activo del producto biológico (lo que se descuenta del inventario).
--- total_liquid_quantity = volumen total de líquido aplicado en campo (activo + dilución),
--- ej: 3 bombas de 18L con 1L de Emulsión c/u → quantity=3, total_liquid_quantity=54.
 CREATE TABLE public.input_application_items (
   id                     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   application_id         uuid NOT NULL REFERENCES public.input_applications(id) ON DELETE CASCADE,
   bio_product_id         uuid NOT NULL REFERENCES public.bio_finished_products(id),
-  quantity               numeric(10,3) NOT NULL,
-  total_liquid_quantity  numeric(10,3)
+  quantity               numeric(10,3) NOT NULL
 );
 
 -- ── Mantenimiento de área ─────────────────────────────────────────────────────

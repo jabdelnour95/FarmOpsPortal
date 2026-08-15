@@ -246,9 +246,13 @@ body{font-family:'Cormorant',Georgia,serif;background:var(--cream);color:var(--b
       <div class="tile-icon finca">🌿</div>
       <div class="tile-body"><div class="tile-name">Vivero</div><div class="tile-desc">Propagación y gestión de plantas</div><span class="tile-badge active">Activo</span></div>
     </div>
-    <div class="dept-tile full admin-only" onclick="openFincaModule('reportes')">
+    <div class="dept-tile admin-only" onclick="window.open('https://taops26.github.io/POS/','_blank')">
+      <div class="tile-icon rep">🛒</div>
+      <div class="tile-body"><div class="tile-name">POS</div><div class="tile-desc">Punto de venta</div><span class="tile-badge admin">Admin</span></div>
+    </div>
+    <div class="dept-tile full admin-only" onclick="openRecordsHome()">
       <div class="tile-icon rep">📊</div>
-      <div class="tile-body"><div class="tile-name">Reportes</div><div class="tile-desc">Revisión de reportes de Finca</div><span class="tile-badge soon">En construcción</span></div>
+      <div class="tile-body"><div class="tile-name">Reportes</div><div class="tile-desc">Ver, editar y borrar registros de Finca</div><span class="tile-badge admin">Admin</span></div>
     </div>
   </div>
 </div>
@@ -311,7 +315,7 @@ body{font-family:'Cormorant',Georgia,serif;background:var(--cream);color:var(--b
       </div>
       <div class="gcard" onclick="openFoodForm('aplic-insumos')">
         <div class="ct">💧 Aplicar Insumos</div>
-        <div class="cd">Aplicación foliar, drench o al suelo</div>
+        <div class="cd">Aplicación foliar, al suelo o fertiriego</div>
       </div>
       <div class="gcard" onclick="openFoodForm('mantenimiento')">
         <div class="ct">🌿 Mantenimiento</div>

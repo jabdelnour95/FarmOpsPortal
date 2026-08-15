@@ -16,6 +16,7 @@ let _substrateBatchesCache = null; // GET /api/nursery/substrate-batches
 let _lotsCache = null;     // GET /api/nursery/lots
 let _activeLot = null;
 let _activeLotDetail = null;
+let _editing = null;       // registro completo en edición (admin), null si es carga nueva
 
 // ─── API ───────────────────────────────────────────────────────────────────
 
@@ -520,29 +521,42 @@ const FORMS = {
 
 // ─── OPEN FORM ─────────────────────────────────────────────────────────────
 
-export function openNurseryForm(type) {
+export async function openNurseryForm(type, record = null) {
   stopRec();
   _activeForm = type;
+  _editing = record || null;
   _entryRows = [];
 
   const def = FORMS[type];
   if (!def) return;
 
-  document.getElementById('ft').textContent = def.title;
-  document.getElementById('fs-back').onclick = () => { stopRec(); openVivero(); };
+  if (!_cats) await _loadCats();
+
+  const title = record ? `Editar: ${def.title}` : def.title;
+  document.getElementById('ft').textContent = title;
+  document.getElementById('fs-back').onclick = () => {
+    stopRec();
+    record ? window._backToRecordsList() : openVivero();
+  };
+  const okBlock = record
+    ? `<div class="ok-msg" id="nur-ok">
+        <p id="nur-ok-txt">✅ Cambios guardados.</p>
+        <button class="btn-sub" style="margin-top:.7rem;" onclick="window._backToRecordsList()">Volver a la lista</button>
+      </div>`
+    : `<div class="ok-msg" id="nur-ok">
+        <p id="nur-ok-txt">✅ Guardado correctamente.</p>
+        <button class="btn-sub green" style="margin-top:.7rem;" onclick="openNurseryForm('${type}')">Agregar otro registro</button>
+      </div>`;
   document.getElementById('fbody').innerHTML = `
-    <h2 style="font-size:1.05rem;font-weight:normal;font-style:italic;color:var(--brown);margin-bottom:1.1rem;">${def.title}</h2>
+    <h2 style="font-size:1.05rem;font-weight:normal;font-style:italic;color:var(--brown);margin-bottom:1.1rem;">${title}</h2>
     ${def.build()}
-    <button class="btn-sub" id="nur-btn-sub" onclick="submitNurseryForm()">Guardar registro</button>
+    <button class="btn-sub" id="nur-btn-sub" onclick="submitNurseryForm()">${record ? 'Guardar cambios' : 'Guardar registro'}</button>
     <div class="fnote">Los datos se guardan en la base de datos de Tierramor.</div>
     <div id="nur-warn" style="display:none;background:rgba(233,196,106,.18);border:1px solid rgba(201,168,76,.5);
                               border-radius:10px;padding:.9rem 1rem;margin-top:.9rem;">
       <p style="font-size:.78rem;font-family:sans-serif;color:#8a6d1f;" id="nur-warn-txt"></p>
     </div>
-    <div class="ok-msg" id="nur-ok">
-      <p id="nur-ok-txt">✅ Guardado correctamente.</p>
-      <button class="btn-sub green" style="margin-top:.7rem;" onclick="openNurseryForm('${type}')">Agregar otro registro</button>
-    </div>
+    ${okBlock}
     <div id="nur-err" style="display:none;background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.3);
                               border-radius:10px;padding:1rem;text-align:center;margin-top:.9rem;">
       <p style="font-size:.82rem;font-family:sans-serif;color:#c0392b;" id="nur-err-txt"></p>
@@ -551,9 +565,79 @@ export function openNurseryForm(type) {
   const dateEl = document.getElementById('f-fecha');
   if (dateEl) dateEl.value = new Date().toISOString().slice(0, 10);
 
-  if (def.afterRender) def.afterRender();
+  if (def.afterRender) await def.afterRender();
+  if (record) _prefillNurseryForm(type, record);
 
   show('fs');
+}
+
+// ─── PREFILL (modo edición, admin) ─────────────────────────────────────────
+
+function _setNurVal(id, val) {
+  const el = document.getElementById(id);
+  if (el && val !== undefined && val !== null) el.value = val;
+}
+
+function _prefillNurseryForm(type, record) {
+  switch (type) {
+    case 'entrada': {
+      _setNurVal('f-fecha', record.date);
+      _setNurVal('f-raw', record.raw_material_id);
+      window._nurRawEntradaUnit();
+      _setNurVal('f-qty', record.quantity);
+      _setNurVal('f-type', record.type);
+      _setNurVal('f-cost', record.cost ?? '');
+      _setNurVal('f-performed', record.performed_by);
+      _setNurVal('ta-obs', record.observations || '');
+      break;
+    }
+
+    case 'sustrato': {
+      _setNurVal('f-fecha', record.date);
+      _setNurVal('f-substrate-type', record.substrate_type_id);
+      _setNurVal('f-qty', record.quantity_produced);
+      _setNurVal('f-unit', record.unit || 'L');
+      _setNurVal('f-performed', record.performed_by);
+      _setNurVal('ta-obs', record.notes || '');
+      _entryRows = (record.substrate_batch_components || []).map(c => {
+        const entry = (_entriesCache || []).find(e => e.id === c.raw_material_entry_id);
+        return { raw_material_id: entry?.raw_material_id || '', raw_material_entry_id: c.raw_material_entry_id, quantity: String(c.quantity) };
+      });
+      _renderSubstrateRows();
+      break;
+    }
+
+    case 'llenado': {
+      _setNurVal('f-fecha', record.date);
+      _setNurVal('f-container-type', record.container_type_id);
+      _setNurVal('f-substrate-batch', record.substrate_batch_id);
+      window._nurSubstrateBatchChanged();
+      _setNurVal('f-sub-qty', record.substrate_quantity);
+      _setNurVal('f-sub-unit', record.substrate_unit || '');
+      _setNurVal('f-qty', record.containers_filled);
+      _setNurVal('f-performed', record.performed_by);
+      _setNurVal('ta-obs', record.observations || '');
+      break;
+    }
+
+    case 'crear-lote': {
+      _setNurVal('f-fecha', record.date_start);
+      _setNurVal('f-origin', record.origin);
+      window._nurOriginChanged();
+      if (record.origin === 'repoting') {
+        _setNurVal('f-repoting-source', record.repoting_from_lot_id);
+        window._nurRepotingSourceChanged();
+      } else {
+        _setNurVal('f-species', record.species_id);
+      }
+      _setNurVal('f-qty', record.initial_quantity);
+      _setNurVal('f-container-type', record.container_type_id || '');
+      _setNurVal('f-containers-assigned', record.containers_assigned ?? '');
+      _setNurVal('f-performed', record.responsible_id);
+      _setNurVal('ta-obs', record.notes || '');
+      break;
+    }
+  }
 }
 
 // ─── GESTIONAR LOTE — picker + detail + sub-forms (dentro de #fs) ─────────
@@ -891,11 +975,15 @@ export async function submitNurseryForm() {
         const cost = parseFloat(document.getElementById('f-cost')?.value) || null;
         const performed_by = document.getElementById('f-performed')?.value || userId;
 
-        await _api('/api/nursery/raw-material-entries', 'POST', {
-          date, raw_material_id, quantity, unit, type, cost,
-          performed_by, created_by: userId,
-          observations: obs,
-        });
+        const entradaFields = { date, raw_material_id, quantity, unit, type, cost, observations: obs };
+
+        if (_editing) {
+          await _api(`/api/nursery/raw-material-entries/${_editing.id}`, 'PATCH', { ...entradaFields, performed_by });
+        } else {
+          await _api('/api/nursery/raw-material-entries', 'POST', {
+            ...entradaFields, performed_by, created_by: userId,
+          });
+        }
         okEl.style.display = 'block';
         btn.textContent = 'Guardado ✓';
         break;
@@ -910,20 +998,29 @@ export async function submitNurseryForm() {
         const performed_by = document.getElementById('f-performed')?.value || userId;
         const validRows = _entryRows.filter(r => r.raw_material_entry_id && r.quantity);
         if (!validRows.length) throw new Error('Agregá al menos una materia prima consumida.');
+        const components = validRows.map(r => ({
+          raw_material_entry_id: r.raw_material_entry_id,
+          quantity: parseFloat(r.quantity),
+          unit: document.getElementById(`sr-entry-${_entryRows.indexOf(r)}`)?.selectedOptions?.[0]?.dataset?.unit || unit,
+        }));
 
-        const batch = await _api('/api/nursery/substrate-batches', 'POST', {
-          substrate_type_id, quantity_produced, unit, date,
-          performed_by, created_by: userId,
-          notes: obs,
-          components: validRows.map(r => ({
-            raw_material_entry_id: r.raw_material_entry_id,
-            quantity: parseFloat(r.quantity),
-            unit: document.getElementById(`sr-entry-${_entryRows.indexOf(r)}`)?.selectedOptions?.[0]?.dataset?.unit || unit,
-          })),
-        });
-        okEl.style.display = 'block';
-        document.getElementById('nur-ok-txt').textContent = `✅ Batch ${batch.batch_id} preparado correctamente.`;
-        btn.textContent = 'Guardado ✓';
+        if (_editing) {
+          await _api(`/api/nursery/substrate-batches/${_editing.id}`, 'PATCH', {
+            substrate_type_id, quantity_produced, unit, date, notes: obs, components,
+          });
+          okEl.style.display = 'block';
+          btn.textContent = 'Guardado ✓';
+        } else {
+          const batch = await _api('/api/nursery/substrate-batches', 'POST', {
+            substrate_type_id, quantity_produced, unit, date,
+            performed_by, created_by: userId,
+            notes: obs,
+            components,
+          });
+          okEl.style.display = 'block';
+          document.getElementById('nur-ok-txt').textContent = `✅ Batch ${batch.batch_id} preparado correctamente.`;
+          btn.textContent = 'Guardado ✓';
+        }
         _entryRows = [];
         break;
       }
@@ -940,11 +1037,13 @@ export async function submitNurseryForm() {
         if (!containers_filled) throw new Error('Ingresá la cantidad de contenedores llenados.');
         const performed_by = document.getElementById('f-performed')?.value || userId;
 
-        await _api('/api/nursery/container-fills', 'POST', {
-          date, container_type_id, substrate_batch_id, substrate_quantity, substrate_unit, containers_filled,
-          performed_by, created_by: userId,
-          observations: obs,
-        });
+        const llenadoFields = { date, container_type_id, substrate_batch_id, substrate_quantity, substrate_unit, containers_filled, observations: obs };
+
+        if (_editing) {
+          await _api(`/api/nursery/container-fills/${_editing.id}`, 'PATCH', { ...llenadoFields, performed_by });
+        } else {
+          await _api('/api/nursery/container-fills', 'POST', { ...llenadoFields, performed_by, created_by: userId });
+        }
         okEl.style.display = 'block';
         btn.textContent = 'Guardado ✓';
         break;
@@ -962,16 +1061,27 @@ export async function submitNurseryForm() {
         const containers_assigned = parseInt(document.getElementById('f-containers-assigned')?.value) || null;
         const responsible_id = document.getElementById('f-performed')?.value || userId;
 
-        const lot = await _api('/api/nursery/lots', 'POST', {
-          species_id, origin, repoting_from_lot_id,
-          date_start: date, initial_quantity,
-          container_type_id, containers_assigned,
-          responsible_id, created_by: userId,
-          notes: obs,
-        });
-        okEl.style.display = 'block';
-        document.getElementById('nur-ok-txt').textContent = `✅ Lote ${lot.lot_id} creado correctamente.`;
-        btn.textContent = 'Guardado ✓';
+        if (_editing) {
+          await _api(`/api/nursery/lots/${_editing.id}`, 'PATCH', {
+            species_id, origin, repoting_from_lot_id,
+            date_start: date, initial_quantity,
+            container_type_id, containers_assigned,
+            responsible_id, notes: obs,
+          });
+          okEl.style.display = 'block';
+          btn.textContent = 'Guardado ✓';
+        } else {
+          const lot = await _api('/api/nursery/lots', 'POST', {
+            species_id, origin, repoting_from_lot_id,
+            date_start: date, initial_quantity,
+            container_type_id, containers_assigned,
+            responsible_id, created_by: userId,
+            notes: obs,
+          });
+          okEl.style.display = 'block';
+          document.getElementById('nur-ok-txt').textContent = `✅ Lote ${lot.lot_id} creado correctamente.`;
+          btn.textContent = 'Guardado ✓';
+        }
         break;
       }
 
@@ -1107,7 +1217,7 @@ export async function submitNurseryForm() {
     errTxt.textContent  = e.message;
     errEl.style.display = 'block';
     btn.disabled        = false;
-    btn.textContent     = 'Guardar registro';
+    btn.textContent     = _editing ? 'Guardar cambios' : 'Guardar registro';
   }
 }
 
