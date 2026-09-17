@@ -1,4 +1,5 @@
 import { computeNextDueDate, getTaskRecordResource, isValidTaskTarget, normalizeRecurrence, normalizeTaskAssigneeIds } from './task-utils.mjs';
+import { plantingPrimaryBedEmbed } from './planting-selects.mjs';
 
 /**
  * Tierramor API — Cloudflare Worker
@@ -435,7 +436,7 @@ const FOOD_TABLE = {
 const FOOD_LIST_SELECT = {
   'area-maintenance': 'select=*,productive_areas(name)&',
   harvests: 'select=*,crops(name),productive_areas(name),beds(code)&',
-  plantings: 'select=*,crops(name),beds(code),planting_beds(bed_id,beds(code,area_id,subarea_id))&',
+  plantings: `select=*,crops(name),${plantingPrimaryBedEmbed('code')},planting_beds(bed_id,beds(code,area_id,subarea_id))&`,
 };
 
 async function _activePlantingsForBeds(env, bedIds, date) {
@@ -459,7 +460,7 @@ async function _savePlantingLinks(env, table, parentColumn, parentId, plantingId
 
 async function _getPlantingLotDetail(env, plantingId) {
   const [lotRes, bedsRes, followRes, statusRes, harvestRes, applicationRes, maintenanceRes] = await Promise.all([
-    sbGet(env, 'plantings', `id=eq.${plantingId}&select=*,crops(name,harvest_unit),beds(code,area_id,subarea_id)&limit=1`),
+    sbGet(env, 'plantings', `id=eq.${plantingId}&select=*,crops(name,harvest_unit),${plantingPrimaryBedEmbed('code', 'area_id', 'subarea_id')}&limit=1`),
     sbGet(env, 'planting_beds', `planting_id=eq.${plantingId}&select=bed_id,beds(code,area_id,subarea_id)`),
     sbGet(env, 'planting_lot_followups', `planting_id=eq.${plantingId}&order=date.desc`),
     sbGet(env, 'planting_lot_status_events', `planting_id=eq.${plantingId}&order=date.desc`),
@@ -532,7 +533,7 @@ async function handleFood(request, env, auth) {
         if (!lotIds.length) return okResponse(request, []);
         filters.push(`id=in.(${lotIds.join(',')})`);
       }
-      const res = await sbGet(env, 'plantings', `${filters.join('&')}&select=*,crops(name),beds(code,area_id,subarea_id)&order=date.desc`);
+      const res = await sbGet(env, 'plantings', `${filters.join('&')}&select=*,crops(name),${plantingPrimaryBedEmbed('code', 'area_id', 'subarea_id')}&order=date.desc`);
       return proxySb(request, res);
     }
 
@@ -624,7 +625,7 @@ async function handleFood(request, env, auth) {
   if (resource === 'plantings') {
     if (!itemId) {
       if (request.method === 'GET') {
-        const res = await sbGet(env, 'plantings', 'select=*,crops(name),beds(code),planting_beds(bed_id,beds(code,area_id,subarea_id))&order=date.desc');
+        const res = await sbGet(env, 'plantings', `select=*,crops(name),${plantingPrimaryBedEmbed('code')},planting_beds(bed_id,beds(code,area_id,subarea_id))&order=date.desc`);
         return proxySb(request, res);
       }
       if (request.method === 'POST') {
@@ -734,6 +735,25 @@ async function handleFood(request, env, auth) {
       await sbPost(env, 'weekly_availability_items', items.map(i => ({ ...i, availability_id: avail.id })));
     }
     return okResponse(request, avail, 201);
+  }
+
+  // ── maintenance with automatic snapshot of active lots in the saved targets.
+  // `target_bed_ids` and `planting_ids` are request-only fields: the former is
+  // used to detect active lots and the latter lets the worker confirm which of
+  // those lots actually received the activity. Neither belongs to
+  // `area_maintenance`; the relation is stored in area_maintenance_plantings.
+  if (resource === 'area-maintenance' && !itemId && request.method === 'POST') {
+    const { target_bed_ids = [], planting_ids = null, ...fields } = await request.json();
+    const maintRes = await sbPost(env, 'area_maintenance', fields);
+    if (!maintRes.ok) return proxySb(request, maintRes);
+    const maintenance = (await maintRes.json())[0];
+    const detected = await _activePlantingsForBeds(env, target_bed_ids, fields.date);
+    const detectedIds = detected.map(lot => lot.id);
+    const selectedIds = Array.isArray(planting_ids)
+      ? planting_ids.filter(id => detectedIds.includes(id))
+      : detectedIds;
+    await _savePlantingLinks(env, 'area_maintenance_plantings', 'maintenance_id', maintenance.id, selectedIds);
+    return okResponse(request, maintenance, 201);
   }
 
   // ── availability/:id (editar/borrar, admin) — distinto de /:id/publish arriba
@@ -1195,21 +1215,6 @@ async function handleTasks(request, env, auth) {
     if (!res.ok) return proxySb(request, res);
     const rows = await res.json();
     return okResponse(request, await _attachTaskNames(env, rows));
-  }
-
-  // ── maintenance with automatic snapshot of active lots in the saved targets.
-  if (resource === 'area-maintenance' && !itemId && request.method === 'POST') {
-    const { target_bed_ids = [], planting_ids = null, ...fields } = await request.json();
-    const maintRes = await sbPost(env, 'area_maintenance', fields);
-    if (!maintRes.ok) return proxySb(request, maintRes);
-    const maintenance = (await maintRes.json())[0];
-    const detected = await _activePlantingsForBeds(env, target_bed_ids, fields.date);
-    const detectedIds = detected.map(lot => lot.id);
-    const selectedIds = Array.isArray(planting_ids)
-      ? planting_ids.filter(id => detectedIds.includes(id))
-      : detectedIds;
-    await _savePlantingLinks(env, 'area_maintenance_plantings', 'maintenance_id', maintenance.id, selectedIds);
-    return okResponse(request, maintenance, 201);
   }
 
   if (!itemId && request.method === 'POST') {
