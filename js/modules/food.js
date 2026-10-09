@@ -3,6 +3,7 @@ import { show } from './navigation.js';
 import { photoUploadWidget, uploadPhotoGroup, clearPhotoGroup } from './photos.js';
 import { stopRec } from './audio.js';
 import { buildMaintenanceObservations, parseMaintenanceObservations } from './food-maintenance-meta.mjs';
+import { filterAndSortCrops, normalizeCropUpdate } from './crop-catalog.mjs';
 import { completeActiveTaskAssignment, describeTaskCompletion, extractRecordId, renderActiveTaskBanner, setActiveTaskAssignment } from './tasks.js';
 
 const API = 'https://tierramor-api.jabdelnour95.workers.dev';
@@ -25,6 +26,7 @@ let _applyScope = 'area'; // 'area' | 'beds'
 let _maintScope = 'area'; // 'area' | 'beds'
 let _activeForm = null;
 let _editing    = null;  // { id } cuando se edita un registro existente (admin), null si es carga nueva
+let _cropCatalogItems = [];
 
 // ─── API ───────────────────────────────────────────────────────────────────
 
@@ -666,6 +668,8 @@ function _renderAvailRows() {
 
 export async function openFood() {
   show('food-screen');
+  const adminTools = document.getElementById('food-admin-tools');
+  if (adminTools) adminTools.style.display = _isFoodAdmin() ? '' : 'none';
   _loadCats()
     .then(() => _loadRecentHarvests())
     .catch(() => {
@@ -1072,6 +1076,140 @@ function _setVal(id, val) {
 
 function _isFoodAdmin() {
   return state.currentUser?.profile?.role === 'admin';
+}
+
+function _escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function _formatCropPrice(value) {
+  const price = Number(value);
+  return Number.isFinite(price)
+    ? `₡${price.toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : 'Sin precio';
+}
+
+function _renderCropCatalogList(query = '') {
+  const list = document.getElementById('crop-catalog-list');
+  const count = document.getElementById('crop-catalog-count');
+  if (!list) return;
+
+  const visibleCrops = filterAndSortCrops(_cropCatalogItems, query);
+  if (count) count.textContent = `${visibleCrops.length} de ${_cropCatalogItems.length} cultivos`;
+  if (!visibleCrops.length) {
+    list.innerHTML = '<div class="doc-note">No se encontraron cultivos con ese nombre.</div>';
+    return;
+  }
+
+  list.innerHTML = visibleCrops.map(crop => `
+    <div style="background:white;border:1px solid rgba(84,66,54,.12);border-radius:10px;padding:.85rem .9rem;margin-bottom:.55rem;display:flex;align-items:center;gap:.75rem;">
+      <div style="min-width:0;flex:1;font-family:sans-serif;">
+        <div style="font-size:.88rem;color:var(--brown);font-weight:500;overflow-wrap:anywhere;">${_escapeHtml(crop.name)}</div>
+        <div style="font-size:.68rem;color:var(--tm);margin-top:.18rem;">${_escapeHtml(crop.harvest_unit)} · ${_formatCropPrice(crop.internal_price)}</div>
+        ${crop.active === false ? '<div style="font-size:.62rem;color:#c0392b;margin-top:.18rem;">Inactivo</div>' : ''}
+      </div>
+      <button type="button" class="crop-edit-btn" data-crop-id="${_escapeHtml(crop.id)}"
+        style="background:none;border:1px solid rgba(153,92,68,.35);border-radius:8px;padding:.5rem .7rem;color:var(--clay);font:inherit;font-family:sans-serif;font-size:.72rem;cursor:pointer;">Editar</button>
+    </div>`).join('');
+
+  list.querySelectorAll('.crop-edit-btn').forEach(button => {
+    button.addEventListener('click', () => openCropEditor(button.dataset.cropId));
+  });
+}
+
+export async function openCropCatalog() {
+  if (!_isFoodAdmin()) {
+    openFood();
+    return;
+  }
+
+  document.getElementById('ft').textContent = 'Catálogo de Cultivos';
+  document.getElementById('fs-back').onclick = () => openFood();
+  document.getElementById('fbody').innerHTML = '<div class="doc-note">Cargando cultivos...</div>';
+  show('fs');
+
+  try {
+    const crops = await _api('/api/catalogs/crops');
+    _cropCatalogItems = Array.isArray(crops) ? crops : [];
+    if (_cats) _cats.crops = _cropCatalogItems;
+    document.getElementById('fbody').innerHTML = `
+      <h2 style="font-size:1.05rem;font-weight:normal;font-style:italic;color:var(--brown);margin-bottom:.35rem;">Administrar cultivos</h2>
+      <div class="doc-note" style="margin-bottom:1rem;">Editá la unidad y el precio utilizados en futuras cosechas y facturas internas. Los registros históricos no cambian.</div>
+      <div class="fg" style="margin-bottom:.45rem;">
+        <label for="crop-catalog-search">Buscar cultivo</label>
+        <input type="search" id="crop-catalog-search" placeholder="Ej.: tomate">
+      </div>
+      <div id="crop-catalog-count" style="font-size:.68rem;font-family:sans-serif;color:var(--tm);text-align:right;margin-bottom:.65rem;"></div>
+      <div id="crop-catalog-list"></div>`;
+
+    const search = document.getElementById('crop-catalog-search');
+    search.addEventListener('input', () => _renderCropCatalogList(search.value));
+    _renderCropCatalogList();
+  } catch (error) {
+    document.getElementById('fbody').innerHTML = `<div class="doc-note" style="color:#c0392b;">${_escapeHtml(error.message)}</div>`;
+  }
+}
+
+export function openCropEditor(id) {
+  if (!_isFoodAdmin()) return;
+  const crop = _cropCatalogItems.find(item => item.id === id);
+  if (!crop) return;
+
+  document.getElementById('ft').textContent = 'Editar Cultivo';
+  document.getElementById('fs-back').onclick = () => openCropCatalog();
+  document.getElementById('fbody').innerHTML = `
+    <h2 style="font-size:1.05rem;font-weight:normal;font-style:italic;color:var(--brown);margin-bottom:1rem;">${_escapeHtml(crop.name)}</h2>
+    <div class="fg"><label for="crop-edit-name">Nombre</label><input type="text" id="crop-edit-name" value="${_escapeHtml(crop.name)}"></div>
+    <div class="fg"><label for="crop-edit-unit">Unidad de cosecha</label><input type="text" id="crop-edit-unit" value="${_escapeHtml(crop.harvest_unit)}" placeholder="Ej.: kg, unidades, manojos"></div>
+    <div class="fg"><label for="crop-edit-price">Precio interno por unidad (₡)</label><input type="number" id="crop-edit-price" min="0" max="99999999.99" step="0.01" value="${_escapeHtml(crop.internal_price)}"></div>
+    <label style="display:flex;align-items:center;gap:.65rem;background:white;border:1px solid rgba(84,66,54,.12);border-radius:9px;padding:.8rem .9rem;margin-bottom:1rem;font-size:.78rem;font-family:sans-serif;color:var(--brown);cursor:pointer;">
+      <input type="checkbox" id="crop-edit-active" ${crop.active === false ? '' : 'checked'} style="width:auto;accent-color:var(--clay);">
+      Cultivo activo y disponible en formularios
+    </label>
+    <div class="doc-note" style="margin-bottom:1rem;">El precio nuevo se aplicará cuando se registren cosechas futuras. Las facturas internas ya generadas conservarán su precio original.</div>
+    <button class="btn-sub" id="crop-edit-save" type="button">Guardar cambios</button>
+    <div class="ok-msg" id="crop-edit-ok"><p>✅ Cultivo actualizado.</p><button class="btn-sub green" id="crop-edit-back" type="button" style="margin-top:.7rem;">Volver al catálogo</button></div>
+    <div id="crop-edit-error" class="doc-note" style="display:none;color:#c0392b;margin-top:.9rem;"></div>`;
+
+  document.getElementById('crop-edit-save').addEventListener('click', () => submitCropEdit(id));
+  document.getElementById('crop-edit-back').addEventListener('click', () => openCropCatalog());
+}
+
+export async function submitCropEdit(id) {
+  if (!_isFoodAdmin()) return;
+  const button = document.getElementById('crop-edit-save');
+  const error = document.getElementById('crop-edit-error');
+  const success = document.getElementById('crop-edit-ok');
+
+  try {
+    error.style.display = 'none';
+    success.style.display = 'none';
+    const payload = normalizeCropUpdate({
+      name: document.getElementById('crop-edit-name')?.value,
+      harvestUnit: document.getElementById('crop-edit-unit')?.value,
+      internalPrice: document.getElementById('crop-edit-price')?.value,
+      active: document.getElementById('crop-edit-active')?.checked,
+    });
+
+    button.disabled = true;
+    button.textContent = 'Guardando...';
+    const response = await _api(`/api/catalogs/crops/${encodeURIComponent(id)}`, 'PATCH', payload);
+    const updated = response?.[0] || { ..._cropCatalogItems.find(item => item.id === id), ...payload };
+    _cropCatalogItems = _cropCatalogItems.map(item => item.id === id ? updated : item);
+    if (_cats) _cats.crops = _cropCatalogItems;
+    success.style.display = 'block';
+  } catch (err) {
+    error.textContent = err.message;
+    error.style.display = 'block';
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Guardar cambios';
+  }
 }
 
 export async function openPlantingTracking() {

@@ -132,6 +132,7 @@ Para correr el app localmente: `python -m http.server 8080` desde este directori
 - [x] **Mapping de `plantings` corregido** — confirmado contra el schema real de Supabase (PostgREST OpenAPI) que la tabla es `plantings` (no `food_production_lots`, que no existe); también corregido `order=planting_date.desc` → `order=date.desc` (la columna real es `date`). El payload de `food.js` (date, bed_id, crop_id, quantity_density, performed_by, created_by, observations) coincide con las columnas de la tabla. Corregido `worker.js:414-422` y redesplegado — Version ID `a9494e35-706e-43bd-8e90-144d9e58bc9a`
 - [x] **Mapping de `invoices` corregido** — confirmado que la tabla real es `internal_invoices_food` (no `food_invoices`, que no existe). Corregido en `FOOD_TABLE` (`worker/worker.js:383`) y redesplegado junto con el fix de `plantings`
 - [x] **Botón "Agregar otro registro"** en el mensaje de éxito de los 6 formularios de Producción de Alimentos — reabre el mismo formulario limpio (`openFoodForm(type)`) sin volver a la galería
+- [x] **Catálogo de cultivos administrable desde el app** — herramienta admin dentro de Producción de Alimentos con buscador y edición de nombre, unidad de cosecha, precio interno y estado activo. Usa el `PATCH /api/catalogs/crops/:id` existente; los cambios de precio aplican a cosechas/facturas futuras y no reescriben facturas históricas. Validación y filtrado en `js/modules/crop-catalog.mjs`, con regresión en `tests/crop-catalog.test.mjs`.
 - [x] **Unidad de medida auto-completada en insumos biológicos** (Preparar Cama / Aplicar Insumos) — al elegir un bioinsumo del dropdown, se muestra su `bio_finished_products.unit` junto al campo de cantidad (`window._foodBioUnit(i)`)
 - [x] **Aplicar Insumos: campo "Líquido total aplicado" condicional** — sólo se muestra cuando el bioinsumo elegido se mide en `L` (líquido diluido en agua); se oculta y limpia automáticamente para insumos en `kg`/`Saco`
 - [x] **Mantenimiento de Área: múltiples camas + round-trip correcto en edición admin** — el form ahora soporta "Camas específicas" con filas dinámicas (`_maintBedRows`); status, camas y participantes se serializan/deserializan con `js/modules/food-maintenance-meta.mjs` para que al editar un registro no reaparezcan en `Observaciones` ni se pierda el estado `pending`. Se agregó regresión en `tests/food-maintenance-meta.test.mjs`.
@@ -208,7 +209,8 @@ Cada departamento nuevo requiere una sesión de discovery de 20–30 min antes d
         │     │     ├─→ form: aplic-insumos
         │     │     ├─→ form: mantenimiento
         │     │     ├─→ form: disponibilidad
-        │     │     └─→ form: cosecha
+        │     │     ├─→ form: cosecha
+        │     │     └─→ Catálogo de Cultivos (admin)
         │     ├─→ #bio-screen (Biofábrica) ← openBio() directo en onclick
         │     │     ├─→ form: entrada
         │     │     ├─→ form: abrir-lote
@@ -273,6 +275,7 @@ Documentadas en detalle en `Docs/TDD.md` sección 9. Resumen:
 - **Estado de módulo:** `_cats` (catálogos cacheados), `_plantings`, filas dinámicas por formulario (`_prepBedRows`, `_harvestRows`, etc.), `_applyScope` / `_maintScope` para toggles.
 - **`_loadCats()`:** Fetcha `beds`, `crops`, `areas`, `bio` en paralelo con `Promise.all()`. Se cachea en `_cats` para el resto de la sesión.
 - **`_bedOptsByArea(areaId)`:** Filtra `_cats.beds` client-side. No hace llamadas al Worker — las camas ya están en caché.
+- **Catálogo admin de cultivos:** `openCropCatalog()` refresca `crops`, permite buscar y abre `openCropEditor(id)` para editar nombre, `harvest_unit`, `internal_price` y `active`. `normalizeCropUpdate()` mantiene la validación pura y testeable; el Worker conserva la autorización admin-only para `PATCH`.
 - **Window bindings:** `_fic` / `_fac` (add/remove input rows), `_fpb` / `_fab` (prep/apply bed rows), `_fhr` (harvest rows), `_foodFilterBeds`, `_foodApplyScope`, `_foodMaintScope`, `_foodNewCropToggle`, `_foodHarvestUnit`, `_foodAvailUnit`, `_foodBioUnit`, `_foodApplyScopeAreaChanged`.
 - **Mantenimiento: scope por área o múltiples camas específicas** — `window._foodMaintAreaChanged()` / `window._foodMaintScopeAreaChanged()` alimentan `_maintBedRows`; el schema sigue siendo `area_maintenance` a nivel de área, así que la trazabilidad de camas, participantes y `pending/completed` se guarda en `observations` usando `buildMaintenanceObservations()` y se rehidrata al editar con `parseMaintenanceObservations()`.
 - **Tareas asignadas → formularios de Finca:** `openFoodForm(type, record, task)` muestra un banner contextual si la apertura viene desde una tarea; al guardar un registro nuevo se llama `completeActiveTaskAssignment()` y la tarea queda completada automáticamente usando el `recordId` del POST. El mismo patrón ya existe también en `bio.js` y `nursery.js`.
